@@ -1,0 +1,38 @@
+{
+  "name": "",
+  "description": "",
+  "version": "0.0.1",
+  "licence": "MIT",
+  "author": "Spencer Kelly (spencermountain)",
+  "homepage": "https://github.com/spencermountain/somehow-geo",
+  "scripts": {
+    "start": "budo index.js:assets/bundle.js --live",
+    "watch": "npm run start",
+    "build": "browserify index.js -t [ babelify --presets [ @babel/preset-env ] ] | derequire > ./assets/bundle.js",
+    "build:old": "browserify index.js -t [ babelify --presets [ @babel/preset-env ] ] | terser -m -c > ./assets/bundle.js"
+  },
+  "prettier": {
+    "trailingComma": "none",
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 100
+  },
+  "dependencies": {
+    "d3-geo": "^1.11.3",
+    "somehow": "0.0.17",
+    "spacetime": "5.7.0",
+    "spencer-color": "0.1.0",
+    "topojson-client": "^3.0.0",
+    "htm": "2.1.1",
+    "vhtml": "2.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "7.4.3",
+    "@babel/preset-env": "7.4.3",
+    "babelify": "10.0.0",
+    "budo": "11.6.2",
+    "derequire": "2.0.6",
+    "terser": "3.17.0"
+  }
+}
