@@ -28,6 +28,10 @@ class Shape {
     this.attrs.fill = colors[c] || c
     return this
   }
+  opacity(n) {
+    this.attrs.opacity = n
+    return this
+  }
   drawSyle() {
     return Object.keys(this.style)
       .map(k => {

@@ -1,6 +1,6 @@
 const wtf = require('/Users/spencer/mountain/wtf_wikipedia/')
 
-wtf.fetch('List of cities in Ontario', (err, doc) => {
+wtf.fetch('List of cities in Quebec', (err, doc) => {
   let list = []
   let tables = doc.tables()[0]
   tables.json().map(row => {

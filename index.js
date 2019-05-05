@@ -16,4 +16,10 @@ w.text('toronto')
 w.shape({
   shape: 'great-lakes'
 })
+
+w.line()
+  .from('toronto')
+  .to('winnipeg')
+  .color('red')
+
 document.querySelector('#stage').innerHTML = w.build()

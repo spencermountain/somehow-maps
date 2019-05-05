@@ -3,7 +3,8 @@ const defaults = {
   fill: 'grey',
   stroke: 'none',
   'stroke-width': 1,
-  'stroke-linecap': 'round'
+  'stroke-linecap': 'round',
+  'text-anchor': 'start'
 }
 
 class Text extends Shape {
@@ -36,7 +37,7 @@ class Text extends Shape {
     let inside = textArr.map(str => h`<tspan x="0" dy="1.2em">${String(str)}</tspan>`)
     let transform = `translate(${point[0]} ${point[1]})`
     return h`<g transform="${transform}" style="${this.drawSyle()}">
-    <text ...${this.attrs}>
+    <text ...${this.attrs} >
       ${inside}
     </text>
   </g>`

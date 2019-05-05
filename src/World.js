@@ -4,6 +4,7 @@ const vhtml = require('vhtml')
 const Dot = require('./shapes/Dot')
 const Text = require('./shapes/Text')
 const Shape = require('./shapes/Shape')
+const Line = require('./shapes/Line')
 const d3Geo = require('d3-geo')
 
 class World {
@@ -21,7 +22,7 @@ class World {
 
     this.projection = d3Geo
       .geoMercator()
-      .scale(2050)
+      .scale(1050)
       .center([-79.3961, 43.6601])
   }
   bind(fn) {
@@ -29,6 +30,11 @@ class World {
   }
   dot(obj) {
     let dot = new Dot(obj, this)
+    this.shapes.push(dot)
+    return dot
+  }
+  line(obj) {
+    let dot = new Line(obj, this)
     this.shapes.push(dot)
     return dot
   }
