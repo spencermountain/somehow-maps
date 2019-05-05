@@ -7,7 +7,18 @@ let w = somehowMaps({
 
 w.shape({
   shape: 'great-lakes'
+}).fill('lightblue')
+
+w.shape({
+  shape: 'provinces'
+}).color('lightgrey')
+
+w.shape({
+  shape: 'north-america'
 })
+// w.shape({
+//   shape: 'rivers'
+// }).stroke('blue')
 
 w.line()
   .from('toronto')
@@ -21,5 +32,7 @@ w.dot()
 w.text('Toronto')
   .at('toronto')
   .color('red')
+
+w.clip(false)
 
 document.querySelector('#stage').innerHTML = w.build()

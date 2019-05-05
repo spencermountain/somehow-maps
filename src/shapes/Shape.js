@@ -28,6 +28,14 @@ class Shape {
     this.attrs.fill = colors[c] || c
     return this
   }
+  stroke(c) {
+    this.attrs.stroke = colors[c] || c
+    return this
+  }
+  fill(c) {
+    this.attrs.fill = colors[c] || c
+    return this
+  }
   opacity(n) {
     this.attrs.opacity = n
     return this

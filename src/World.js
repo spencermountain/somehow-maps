@@ -19,6 +19,7 @@ class World {
     }
     this.shapes = []
     this.html = htm.bind(vhtml)
+    this._clip = true
 
     this.projection = d3Geo
       .geoMercator()
@@ -48,6 +49,10 @@ class World {
     this.shapes.push(dot)
     return dot
   }
+  clip(bool) {
+    this._clip = bool
+    return this
+  }
   build() {
     let h = this.html
     let shapes = this.shapes.sort((a, b) => (a._order > b._order ? 1 : -1))
@@ -58,7 +63,12 @@ class World {
       height: this.height,
       viewBox: `0,0,${this.width},${this.height}`,
       preserveAspectRatio: 'xMidYMid meet',
-      style: 'overflow:hidden; margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
+      style: 'margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
+    }
+    if (this._clip) {
+      attrs.style += 'overflow:hidden;'
+    } else {
+      attrs.style += 'overflow:visible;'
     }
     return h`<svg ...${attrs} class="outline">
       ${elements}
