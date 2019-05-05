@@ -21,6 +21,7 @@
   "dependencies": {
     "d3-geo": "^1.11.3",
     "htm": "2.1.1",
+    "osm-pbf-parser": "^2.3.0",
     "somehow": "0.1.3",
     "spacetime": "5.8.0",
     "spencer-color": "0.1.0",
