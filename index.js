@@ -5,14 +5,6 @@ let w = somehowMaps({
   aspect: 'widescreen'
 })
 
-w.dot()
-  .at('toronto')
-  .color('red')
-
-w.text('toronto')
-  .at('toronto')
-  .color('red')
-
 w.shape({
   shape: 'great-lakes'
 })
@@ -20,6 +12,14 @@ w.shape({
 w.line()
   .from('toronto')
   .to('winnipeg')
+  .color('red')
+
+w.dot()
+  .at('barrie')
+  .color('blue')
+
+w.text('Toronto')
+  .at('toronto')
   .color('red')
 
 document.querySelector('#stage').innerHTML = w.build()
