@@ -1,6 +1,6 @@
-module.exports = {
-  type: 'Topology',
-  arcs: [
+{
+  "type": "Topology",
+  "arcs": [
     [[9011, 1404], [28, -17]],
     [
       [9039, 1387],
@@ -1822,26 +1822,29 @@ module.exports = {
       [-106, -53]
     ]
   ],
-  transform: {
-    scale: [0.0009990424944179362, 0.0006327663375915449],
-    translate: [-92.10703124999999, 41.398095703124994]
+  "transform": {
+    "scale": [0.0009990424944179362, 0.0006327663375915449],
+    "translate": [-92.10703124999999, 41.398095703124994]
   },
-  objects: {
-    ne_50m_lakes: {
-      type: 'GeometryCollection',
-      geometries: [
-        { arcs: [[0, 1], [2], [3]], type: 'Polygon' },
-        { arcs: [[4], [5], [6], [7], [8]], type: 'Polygon' },
-        { arcs: [[-1, 9]], type: 'Polygon' },
-        { arcs: [[10, 11], [12], [13], [14], [15]], type: 'Polygon' },
-        { arcs: [[16, 17], [18], [19], [20], [21], [22], [23], [24], [25], [26]], type: 'Polygon' },
+  "objects": {
+    "ne_50m_lakes": {
+      "type": "GeometryCollection",
+      "geometries": [
+        { "arcs": [[0, 1], [2], [3]], "type": "Polygon" },
+        { "arcs": [[4], [5], [6], [7], [8]], "type": "Polygon" },
+        { "arcs": [[-1, 9]], "type": "Polygon" },
+        { "arcs": [[10, 11], [12], [13], [14], [15]], "type": "Polygon" },
         {
-          arcs: [[27, -12, 28, -17], [29], [30], [31], [32], [33], [34], [35], [36], [37]],
-          type: 'Polygon'
+          "arcs": [[16, 17], [18], [19], [20], [21], [22], [23], [24], [25], [26]],
+          "type": "Polygon"
         },
-        { arcs: [[38]], type: 'Polygon' },
-        { arcs: [[39]], type: 'Polygon' },
-        { arcs: [[40]], type: 'Polygon' }
+        {
+          "arcs": [[27, -12, 28, -17], [29], [30], [31], [32], [33], [34], [35], [36], [37]],
+          "type": "Polygon"
+        },
+        { "arcs": [[38]], "type": "Polygon" },
+        { "arcs": [[39]], "type": "Polygon" },
+        { "arcs": [[40]], "type": "Polygon" }
       ]
     }
   }
