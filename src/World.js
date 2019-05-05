@@ -2,6 +2,9 @@ const fitAspect = require('fit-aspect-ratio')
 const htm = require('htm')
 const vhtml = require('vhtml')
 const Dot = require('./shapes/Dot')
+const Text = require('./shapes/Text')
+const Shape = require('./shapes/Shape')
+const d3Geo = require('d3-geo')
 
 class World {
   constructor(obj = {}) {
@@ -15,13 +18,29 @@ class World {
     }
     this.shapes = []
     this.html = htm.bind(vhtml)
+
+    this.projection = d3Geo
+      .geoMercator()
+      .scale(2050)
+      .center([-79.3961, 43.6601])
   }
   bind(fn) {
     this.html = htm.bind(fn)
   }
   dot(obj) {
-    this.shapes.push(new Dot(obj))
-    return this
+    let dot = new Dot(obj, this)
+    this.shapes.push(dot)
+    return dot
+  }
+  text(obj) {
+    let dot = new Text(obj, this)
+    this.shapes.push(dot)
+    return dot
+  }
+  shape(obj) {
+    let dot = new Shape(obj, this)
+    this.shapes.push(dot)
+    return dot
   }
   build() {
     let h = this.html
@@ -33,9 +52,9 @@ class World {
       height: this.height,
       viewBox: `0,0,${this.width},${this.height}`,
       preserveAspectRatio: 'xMidYMid meet',
-      style: 'overflow:visible; margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
+      style: 'overflow:hidden; margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
     }
-    return h`<svg ...${attrs}>
+    return h`<svg ...${attrs} class="outline">
       ${elements}
     </svg>`
   }

@@ -1,4 +1,19 @@
-const htm = require('htm')
-const h = htm.bind(require('vhtml'))
+const somehowMaps = require('./src')
 
-document.querySelector('#stage').innerHTML = h`<div class="">hello</div>`
+let w = somehowMaps({
+  height: 300,
+  aspect: 'widescreen'
+})
+
+w.dot()
+  .at('toronto')
+  .color('red')
+
+w.text('toronto')
+  .at('toronto')
+  .color('red')
+
+w.shape({
+  shape: 'great-lakes'
+})
+document.querySelector('#stage').innerHTML = w.build()
