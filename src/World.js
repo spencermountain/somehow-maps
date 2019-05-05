@@ -1,11 +1,13 @@
 const fitAspect = require('fit-aspect-ratio')
 const htm = require('htm')
 const vhtml = require('vhtml')
+const d3Geo = require('d3-geo')
 const Dot = require('./shapes/Dot')
 const Text = require('./shapes/Text')
 const Shape = require('./shapes/Shape')
 const Line = require('./shapes/Line')
-const d3Geo = require('d3-geo')
+const Graticule = require('./shapes/Graticule')
+const data = require('./data')
 
 class World {
   constructor(obj = {}) {
@@ -20,11 +22,17 @@ class World {
     this.shapes = []
     this.html = htm.bind(vhtml)
     this._clip = true
-
+    this.projection = d3Geo.geoMercator().scale(258)
+  }
+  mercator() {
+    this.projection = d3Geo.geoMercator().scale(450)
+  }
+  globe() {
     this.projection = d3Geo
-      .geoMercator()
-      .scale(1050)
-      .center([-79.3961, 43.6601])
+      .geoOrthographic()
+      .scale(958)
+      .translate([-190, -590])
+      .rotate([77, -51, 0])
   }
   bind(fn) {
     this.html = htm.bind(fn)
@@ -36,6 +44,11 @@ class World {
   }
   line(obj) {
     let dot = new Line(obj, this)
+    this.shapes.push(dot)
+    return dot
+  }
+  graticule(obj) {
+    let dot = new Graticule(obj, this)
     this.shapes.push(dot)
     return dot
   }
@@ -53,6 +66,12 @@ class World {
     this._clip = bool
     return this
   }
+  center(point) {
+    if (typeof point === 'string') {
+      point = data.points[point]
+    }
+    this.projection.center(point)
+  }
   build() {
     let h = this.html
     let shapes = this.shapes.sort((a, b) => (a._order > b._order ? 1 : -1))
@@ -66,11 +85,11 @@ class World {
       style: 'margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
     }
     if (this._clip) {
-      attrs.style += 'overflow:hidden;'
+      attrs.style += 'overflow:hidden; border:1px solid #a3a5a5;'
     } else {
       attrs.style += 'overflow:visible;'
     }
-    return h`<svg ...${attrs} class="outline">
+    return h`<svg ...${attrs}>
       ${elements}
     </svg>`
   }

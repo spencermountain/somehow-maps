@@ -11,14 +11,12 @@ w.shape({
 
 w.shape({
   shape: 'provinces'
-}).color('lightgrey')
+})
+//.color('lightgrey')
 
 w.shape({
   shape: 'north-america'
 })
-// w.shape({
-//   shape: 'rivers'
-// }).stroke('blue')
 
 w.line()
   .from('toronto')
@@ -33,6 +31,10 @@ w.text('Toronto')
   .at('toronto')
   .color('red')
 
-w.clip(false)
+w.clip(true)
+w.graticule()
+w.globe()
+
+w.center([-72.3961, 43.6601])
 
 document.querySelector('#stage').innerHTML = w.build()
