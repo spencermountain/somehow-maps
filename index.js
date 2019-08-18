@@ -5,18 +5,18 @@ let w = somehowMaps({
   aspect: 'widescreen'
 })
 
-w.shape({
-  shape: 'great-lakes'
-}).fill('lightblue')
+// w.background({
+//   shape: 'great-lakes'
+// }).fill('lightblue')
 
-w.shape({
-  shape: 'provinces'
-})
+// w.shape({
+//   shape: 'provinces'
+// })
 //.color('lightgrey')
 
-w.shape({
-  shape: 'north-america'
-})
+// w.background('states')
+w.background('world')
+// w.background('rivers')
 
 w.line()
   .from('toronto')
@@ -32,9 +32,10 @@ w.text('Toronto')
   .color('red')
 
 w.clip(true)
-w.graticule()
-w.globe()
+// w.graticule()
+// w.globe()
 
 w.center([-72.3961, 43.6601])
+// w.fit()
 
 document.querySelector('#stage').innerHTML = w.build()

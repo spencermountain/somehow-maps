@@ -1,4 +1,4 @@
-const data = require('../data')
+const data = require('./data')
 const d3Geo = require('d3-geo')
 const topojson = require('topojson-client')
 const colors = require('spencer-color').colors
@@ -9,6 +9,11 @@ const defaults = {
 }
 class Shape {
   constructor(obj = {}, world) {
+    if (typeof obj === 'string') {
+      obj = {
+        shape: obj
+      }
+    }
     this.world = world
     this.data = obj.data || []
     this._id = obj.id //|| fns.uid('input')

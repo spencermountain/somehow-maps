@@ -8,6 +8,7 @@ const Shape = require('./shapes/Shape')
 const Line = require('./shapes/Line')
 const Graticule = require('./shapes/Graticule')
 const data = require('./data')
+const Background = require('./Background')
 
 class World {
   constructor(obj = {}) {
@@ -20,6 +21,7 @@ class World {
       this.height = res.height || 400
     }
     this.shapes = []
+    this.back = []
     this.html = htm.bind(vhtml)
     this._clip = true
     this.projection = d3Geo.geoMercator().scale(258)
@@ -33,6 +35,11 @@ class World {
       .scale(958)
       .translate([-190, -590])
       .rotate([77, -51, 0])
+  }
+  background(str) {
+    let shape = new Background(str, this)
+    this.back.push(shape)
+    return shape
   }
   bind(fn) {
     this.html = htm.bind(fn)
@@ -72,11 +79,13 @@ class World {
     }
     this.projection.center(point)
   }
+  fit() {}
   build() {
     let h = this.html
     let shapes = this.shapes.sort((a, b) => (a._order > b._order ? 1 : -1))
     let elements = []
     elements = elements.concat(shapes.map(shape => shape.build()))
+    elements = elements.concat(this.back.map(sh => sh.build()))
     let attrs = {
       width: this.width,
       height: this.height,
