@@ -13,6 +13,26 @@ w.background('world')
 //   .from('toronto')
 //   .to('winnipeg')
 //   .color('red')
+let lng = 0
+w.line()
+  .set([[-180, lng], [-90, lng], [0, lng], [90, lng], [180, lng]])
+  .color('red')
+  .showPoints(false)
+
+// tropic of cancer
+w.latitude()
+  .at(23)
+  .color('sky')
+
+// tropic of capricorn
+w.latitude()
+  .at(-23)
+  .color('sky')
+
+// w.line()
+//   .from([170, 1])
+//   .to([20, 1])
+//   .color('red')
 
 // w.dot()
 //   .at('barrie')

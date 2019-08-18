@@ -13,26 +13,23 @@ class Graticule extends Shape {
     obj = Object.assign({}, defaults, obj)
     super(obj, world)
     this.world = world
-    // this.data = obj.data || []
-    // this._id = obj.id //|| fns.uid('input')
-    // this.attrs = Object.assign({}, defaults, obj)
-    // this.shape = data.shapes[obj.shape] || data.points[obj.point] || obj.shape
-    // this.point = []
-    // this.style = {}
     this._type = 'Graticule'
+    this.lat = 4
+    this.lon = 0
   }
   build() {
     let h = this.world.html
     let projection = this.world.projection
     const toPath = d3Geo.geoPath().projection(projection)
-    let grat = d3Geo.geoGraticule().step([4, 0])
+    let grat = d3Geo.geoGraticule().step([this.lon, this.lat])
+    // grat.extent([0, 90, 0, 90])
     let lines = grat.lines()
     lines = lines.map(line => {
       let d = toPath(line)
       let attrs = Object.assign({}, this.attrs, {
         id: this._id,
         d: d,
-        stroke: 'grey'
+        stroke: colors.lighter
       })
       return h`<path ...${attrs}></path>`
     })

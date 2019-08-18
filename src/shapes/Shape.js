@@ -25,6 +25,10 @@ class Shape {
     }
     return this
   }
+  set(input) {
+    this.data = input
+    return this
+  }
   bounds() {
     return {
       top: null,

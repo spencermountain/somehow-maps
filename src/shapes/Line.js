@@ -17,6 +17,11 @@ class Line extends Shape {
     this._type = 'Line'
     this._radius = obj.radius || 5
     this._data = []
+    this._showPoints = true
+  }
+  showPoints(bool) {
+    this._showPoints = bool
+    return this
   }
   color(c) {
     this.attrs.stroke = colors[c] || c
@@ -31,16 +36,24 @@ class Line extends Shape {
       type: 'Feature',
       geometry: {
         type: 'LineString',
-        coordinates: [this._data[0].reverse(), this._data[1].reverse()]
+        coordinates: this.data //[this._data[0].reverse(), this._data[1].reverse()]
       }
     }
   }
-  from(str) {
-    this._data[0] = data.points[str] || str
+  from(input) {
+    if (typeof input === 'string') {
+      this._data[0] = data.points[input] || input
+    } else {
+      this._data[0] = input
+    }
     return this
   }
-  to(str) {
-    this._data[1] = data.points[str] || str
+  to(input) {
+    if (typeof input === 'string') {
+      this._data[1] = data.points[input] || input
+    } else {
+      this._data[1] = input
+    }
     return this
   }
   makePoint(arr) {
@@ -58,10 +71,16 @@ class Line extends Shape {
       id: this._id,
       d: d
     })
+    let pointA = null
+    let pointB = null
+    if (this._showPoints) {
+      pointA = this.makePoint(this._data[0])
+      pointB = this.makePoint(this._data[1])
+    }
     return h`<g>
-      ${this.makePoint(this._data[0])}
+      ${pointA}
       <path ...${attrs}></path>
-      ${this.makePoint(this._data[1])}
+      ${pointB}
     </g>`
   }
 }

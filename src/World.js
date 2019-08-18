@@ -6,6 +6,7 @@ const Dot = require('./shapes/Dot')
 const Text = require('./shapes/Text')
 const Shape = require('./shapes/Shape')
 const Line = require('./shapes/Line')
+const Latitude = require('./shapes/Latitude')
 const data = require('./data')
 const fns = require('./_fns')
 
@@ -48,7 +49,7 @@ class World {
       .translate([90, 90])
       // .scale(958)
       // .translate([-190, -590])
-      .rotate([77, -51, 0])
+      .rotate([77, -10, 0])
   }
   background(str) {
     let shape = new Background(str, this)
@@ -70,6 +71,11 @@ class World {
   }
   line(obj) {
     let dot = new Line(obj, this)
+    this.shapes.push(dot)
+    return dot
+  }
+  latitude(obj) {
+    let dot = new Latitude(obj, this)
     this.shapes.push(dot)
     return dot
   }
