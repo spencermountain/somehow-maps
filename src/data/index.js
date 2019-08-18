@@ -2,12 +2,11 @@ module.exports = {
   shapes: {
     // lakes: require('./shapes/lakes'),
     // rivers: require('./shapes/rivers'),
-    'great-lakes': require('./shapes/great-lakes'),
-
     land: require('./shapes/land'),
     'north-america': require('./shapes/north-america'),
     world: require('./shapes/countries'),
-    states: require('./shapes/states')
+    states: require('./shapes/states'),
+    'great-lakes': require('./shapes/great-lakes')
   },
   points: require('./points/index')
 }

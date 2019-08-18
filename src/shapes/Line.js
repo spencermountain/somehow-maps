@@ -2,6 +2,7 @@ const Shape = require('./Shape')
 const colors = require('spencer-color').colors
 const d3Geo = require('d3-geo')
 const data = require('../data')
+const fns = require('../_fns')
 
 const defaults = {
   fill: 'none',
@@ -13,6 +14,7 @@ class Line extends Shape {
   constructor(obj = {}, world) {
     obj = Object.assign({}, defaults, obj)
     super(obj, world)
+    this._type = 'Line'
     this._radius = obj.radius || 5
     this._data = []
   }
@@ -20,6 +22,10 @@ class Line extends Shape {
     this.attrs.stroke = colors[c] || c
     return this
   }
+  // bounds() {
+  //   console.log(this._data)
+  //   return {}
+  // }
   toData() {
     return {
       type: 'Feature',
@@ -40,7 +46,6 @@ class Line extends Shape {
   makePoint(arr) {
     let h = this.world.html
     let point = this.world.projection([arr[0], arr[1]])
-    console.log(point)
     return h`<circle cx="${point[0]}" cy="${point[1]}" r="5" fill="${this.attrs.stroke}"></circle>`
   }
   build() {

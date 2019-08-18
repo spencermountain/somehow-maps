@@ -6,9 +6,11 @@ const Dot = require('./shapes/Dot')
 const Text = require('./shapes/Text')
 const Shape = require('./shapes/Shape')
 const Line = require('./shapes/Line')
-const Graticule = require('./shapes/Graticule')
 const data = require('./data')
-const Background = require('./Background')
+const fns = require('./_fns')
+
+const Graticule = require('./background/Graticule')
+const Background = require('./background/Background')
 
 class World {
   constructor(obj = {}) {
@@ -27,19 +29,36 @@ class World {
     this.projection = d3Geo.geoMercator().scale(258)
   }
   mercator() {
-    this.projection = d3Geo.geoMercator().scale(450)
+    this.projection = d3Geo.geoMercator().scale(550)
+  }
+  fit() {
+    let ranges = this.shapes.map(sh => {
+      sh.bounds()
+    })
+    ranges = ranges.filter(o => o)
+    let left = fns.bounds(ranges.map(o => o.left)).min
+    let top = fns.bounds(ranges.map(o => o.top)).max
+    // console.log(min, max)
+    return this
   }
   globe() {
     this.projection = d3Geo
       .geoOrthographic()
-      .scale(958)
-      .translate([-190, -590])
+      .scale(158)
+      .translate([90, 90])
+      // .scale(958)
+      // .translate([-190, -590])
       .rotate([77, -51, 0])
   }
   background(str) {
     let shape = new Background(str, this)
     this.back.push(shape)
     return shape
+  }
+  graticule(obj) {
+    let dot = new Graticule(obj, this)
+    this.back.push(dot)
+    return dot
   }
   bind(fn) {
     this.html = htm.bind(fn)
@@ -51,11 +70,6 @@ class World {
   }
   line(obj) {
     let dot = new Line(obj, this)
-    this.shapes.push(dot)
-    return dot
-  }
-  graticule(obj) {
-    let dot = new Graticule(obj, this)
     this.shapes.push(dot)
     return dot
   }
@@ -79,7 +93,6 @@ class World {
     }
     this.projection.center(point)
   }
-  fit() {}
   build() {
     let h = this.html
     let shapes = this.shapes.sort((a, b) => (a._order > b._order ? 1 : -1))

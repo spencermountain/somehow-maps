@@ -1,11 +1,11 @@
-const data = require('./data')
+const data = require('../data')
 const d3Geo = require('d3-geo')
 const topojson = require('topojson-client')
 const colors = require('spencer-color').colors
 
 const defaults = {
   fill: 'none',
-  stroke: 'grey'
+  stroke: colors.lighter
 }
 class Shape {
   constructor(obj = {}, world) {

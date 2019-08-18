@@ -23,6 +23,7 @@ class Text extends Shape {
     }
     obj = Object.assign({}, defaults, obj)
     super(obj, world)
+    this._type = 'Text'
     this.textFn = textFn
     this.textLines = text || obj.text || []
   }

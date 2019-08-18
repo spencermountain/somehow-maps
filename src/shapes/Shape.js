@@ -16,6 +16,7 @@ class Shape {
     this.shape = data.shapes[obj.shape] || data.points[obj.point] || obj.shape
     this.point = []
     this.style = {}
+    this._type = 'Shape'
   }
   at(str) {
     if (typeof str === 'string') {
@@ -24,7 +25,14 @@ class Shape {
     }
     return this
   }
-  bounds() {}
+  bounds() {
+    return {
+      top: null,
+      bottom: null,
+      east: null,
+      west: null
+    }
+  }
   color(c) {
     this.attrs.fill = colors[c] || c
     return this

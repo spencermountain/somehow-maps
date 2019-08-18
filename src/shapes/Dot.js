@@ -9,6 +9,7 @@ class Dot extends Shape {
   constructor(obj = {}, world) {
     obj = Object.assign({}, defaults, obj)
     super(obj, world)
+    this._type = 'Dot'
     this._radius = obj.radius || 5
   }
   build() {
