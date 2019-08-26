@@ -5,5 +5,3 @@ module.exports = Object.assign(
   require('./manitoba'),
   require('./countries')
 )
-
-console.log(module.exports['france'])

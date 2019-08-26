@@ -27,6 +27,7 @@ module.exports = {
   'ho chi minh': [10.8, 106.65],
   kinshasa: [-4.325, 15.32222],
   'los angeles': [34.05, -118.25],
+  vancouver: [49.3748, -123.0551],
   lagos: [6.45503, 3.38408],
   'buenos aires': [-34.60333, -58.38167],
   nanjing: [32.05, 118.76667],

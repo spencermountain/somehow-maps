@@ -52,12 +52,20 @@ class World {
       let west = fns.bounds(ranges.map(o => o.west)).max
       let top = fns.bounds(ranges.map(o => o.top)).min
       let bottom = fns.bounds(ranges.map(o => o.bottom)).max
-      box = [[east, top], [west, bottom]]
+      // give it margins
+      // east = east + 13
+      // console.log(east)
+      // top *= 1.01
+      // bottom *= 1.1
+      // east += 5
+      box = [[west, top], [east, bottom]]
     }
+    // box = [[69, -122], [-71, 43]]
+    // box = [[80, 80], [-170, 170]]
+
     // console.log(box)
     // box = [[-9.0882278, 72.2460938].reverse(), [-55.3228175, 168.2249543].reverse()]
     // box = fns.parseBounds(input)
-    // console.log(box)
     let shape = {
       type: 'Feature',
       geometry: {
@@ -65,7 +73,10 @@ class World {
         coordinates: [box[0].reverse(), box[1].reverse()]
       }
     }
-    this.projection.fitSize([500, 500], shape)
+    // this.projection.fitSize([this.width - 10, this.height - 10], shape)
+    let margin = 25
+    let extent = [[margin, 0], [500 - margin, 500]]
+    this.projection.fitExtent(extent, shape)
 
     return this
   }
@@ -143,7 +154,7 @@ class World {
       style: 'margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
     }
     if (this._clip) {
-      // attrs.style += 'overflow:hidden; border:1px solid #a3a5a5;'
+      attrs.style += 'overflow:hidden; border:1px solid #a3a5a5;'
     } else {
       attrs.style += 'overflow:visible; border:1px solid #a3a5a5;'
     }

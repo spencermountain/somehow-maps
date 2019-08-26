@@ -12,6 +12,7 @@ w.background('world')
 //   ALWAYS USE
 //  [ lat, lng ]
 //  [ Y, X ]
+//  [90->90,   -180, 180]
 
 // toronto
 // [43, -79]
@@ -19,17 +20,24 @@ w.background('world')
 
 w.line()
   .from('toronto')
-  .to('montreal')
+  .to('cape town')
   .color('red')
-w.line()
-  .from('iran')
-  .to('france')
-  .color('blue')
+// w.line()
+//   .from('iran')
+//   .to('france')
+//   .color('blue')
+// w.line()
+//   .set([[69, -122], [-71, 163]])
+
+// .color('green')
 // w.line()
 //   .from([-58.3961, -50.6601])
 //   .to([-22.3961, -43.6601])
 //   .color('orange')
 
+// w.line()
+//   .from('vancouver')
+//   .to('ghana')
 // w.longitude()
 //   .at('toronto')
 //   .color('blue')
@@ -41,8 +49,9 @@ w.line()
 // w.center([-72, 43])
 // w.center([43, -79])
 // w.center('toronto')
-w.fit('germany')
-// w.zoom(2)
+// w.fit('germany')
+w.fit()
+// w.zoom(0.)
 
 let el = document.querySelector('#stage')
 el.innerHTML = w.build()
