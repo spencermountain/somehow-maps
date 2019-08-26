@@ -8,5 +8,6 @@ module.exports = {
     states: require('./shapes/states'),
     'great-lakes': require('./shapes/great-lakes')
   },
-  points: require('./points/index')
+  points: require('./points/index'),
+  bounds: require('./bounds')
 }

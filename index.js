@@ -1,52 +1,52 @@
 const somehowMaps = require('./src')
 
 let w = somehowMaps({
-  height: 400,
-  aspect: 'widescreen'
+  // height: 200,
+  // aspect: 'widescreen'
 })
 
 // w.background('states')
 w.background('world')
 // w.background('rivers')
 
-// w.line()
-//   .from('toronto')
-//   .to('winnipeg')
-//   .color('red')
-let lng = 0
+//   ALWAYS USE
+//  [ lat, lng ]
+//  [ Y, X ]
+
+// toronto
+// [43, -79]
+// [north +,  west -]
+
 w.line()
-  .set([[-180, lng], [-90, lng], [0, lng], [90, lng], [180, lng]])
+  .from('toronto')
+  .to('montreal')
   .color('red')
-  .showPoints(false)
-
-// tropic of cancer
-w.latitude()
-  .at(23)
-  .color('sky')
-
-// tropic of capricorn
-w.latitude()
-  .at(-23)
-  .color('sky')
-
+w.line()
+  .from('iran')
+  .to('france')
+  .color('blue')
 // w.line()
-//   .from([170, 1])
-//   .to([20, 1])
-//   .color('red')
+//   .from([-58.3961, -50.6601])
+//   .to([-22.3961, -43.6601])
+//   .color('orange')
 
-// w.dot()
-//   .at('barrie')
+// w.longitude()
+//   .at('toronto')
 //   .color('blue')
 
-// w.text('Toronto')
-//   .at('toronto')
-//   .color('red')
+// w.clip(true)
+// w.graticule()
+// w.globe()
 
-w.clip(true)
-w.graticule()
-w.globe()
+// w.center([-72, 43])
+// w.center([43, -79])
+// w.center('toronto')
+w.fit('germany')
+// w.zoom(2)
 
-w.center([-72.3961, 43.6601])
-w.fit()
+let el = document.querySelector('#stage')
+el.innerHTML = w.build()
 
-document.querySelector('#stage').innerHTML = w.build()
+el.addEventListener('resize', () => {
+  console.log('SVG resized.')
+})

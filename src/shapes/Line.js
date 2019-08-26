@@ -1,7 +1,6 @@
 const Shape = require('./Shape')
 const colors = require('spencer-color').colors
 const d3Geo = require('d3-geo')
-const data = require('../data')
 const fns = require('../_fns')
 
 const defaults = {
@@ -36,24 +35,16 @@ class Line extends Shape {
       type: 'Feature',
       geometry: {
         type: 'LineString',
-        coordinates: this.data //[this._data[0].reverse(), this._data[1].reverse()]
+        coordinates: this._data
       }
     }
   }
   from(input) {
-    if (typeof input === 'string') {
-      this._data[0] = data.points[input] || input
-    } else {
-      this._data[0] = input
-    }
+    this._data[0] = fns.parsePoint(input)
     return this
   }
   to(input) {
-    if (typeof input === 'string') {
-      this._data[1] = data.points[input] || input
-    } else {
-      this._data[1] = input
-    }
+    this._data[1] = fns.parsePoint(input)
     return this
   }
   makePoint(arr) {

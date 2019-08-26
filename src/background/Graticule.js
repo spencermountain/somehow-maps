@@ -14,8 +14,8 @@ class Graticule extends Shape {
     super(obj, world)
     this.world = world
     this._type = 'Graticule'
-    this.lat = 4
-    this.lon = 0
+    this.lat = 0
+    this.lon = 4
   }
   build() {
     let h = this.world.html

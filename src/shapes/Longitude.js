@@ -7,26 +7,26 @@ const defaults = {
   stroke: colors.blue,
   'stroke-width': 4
 }
-class Latitude extends Shape {
+class Longitude extends Shape {
   constructor(obj = {}, world) {
     obj = Object.assign({}, defaults, obj)
     super(obj, world)
     this._type = 'Dot'
-    this._lng = obj.lng || 5
+    this._lat = obj.lat || 5
     this.fill = obj.fill || defaults.fill
   }
   color(c) {
     this.attrs.stroke = colors[c] || c
     return this
   }
-  at(lng) {
-    this._lng = lng
+  at(lat) {
+    this._lat = lat
     return this
   }
   toData() {
     let arr = []
-    for (let lat = -180; lat < 180; lat += 10) {
-      arr.push([lat, this._lng]) //create a ton of small line-segments
+    for (let lng = -90; lng < 90; lng += 5) {
+      arr.push([this._lat, lng]) //create a ton of small line-segments
     }
     return {
       type: 'Feature',
@@ -52,4 +52,4 @@ class Latitude extends Shape {
     </g>`
   }
 }
-module.exports = Latitude
+module.exports = Longitude

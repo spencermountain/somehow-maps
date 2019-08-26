@@ -1,4 +1,5 @@
 const data = require('../data')
+const fns = require('../_fns')
 const d3Geo = require('d3-geo')
 const topojson = require('topojson-client')
 const colors = require('spencer-color').colors
@@ -10,7 +11,7 @@ const defaults = {
 class Shape {
   constructor(obj = {}, world) {
     this.world = world
-    this.data = obj.data || []
+    this._data = obj.data || []
     this._id = obj.id //|| fns.uid('input')
     this.attrs = Object.assign({}, defaults, obj)
     this.shape = data.shapes[obj.shape] || data.points[obj.point] || obj.shape
@@ -21,20 +22,24 @@ class Shape {
   at(str) {
     if (typeof str === 'string') {
       str = str.toLowerCase().trim()
-      this.point = data.points[str]
+      this.point = fns.parsePoint(str)
+    } else {
+      this.point = str
     }
     return this
   }
   set(input) {
-    this.data = input
+    this._data = input
     return this
   }
   bounds() {
+    let x = fns.bounds(this._data.map(a => a[0]))
+    let y = fns.bounds(this._data.map(a => a[1]))
     return {
-      top: null,
-      bottom: null,
-      east: null,
-      west: null
+      top: x.min,
+      bottom: x.max,
+      east: y.min,
+      west: y.max
     }
   }
   color(c) {
