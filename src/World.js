@@ -29,6 +29,7 @@ class World {
     this.html = htm.bind(vhtml)
     this._clip = true
     this.projection = d3Geo.geoMercator() //.fitSize([500, 500], feature) //.scale(350)
+    this._box = []
   }
   mercator() {
     this.projection = d3Geo.geoMercator().scale(200)
@@ -60,6 +61,7 @@ class World {
       // east += 5
       box = [[west, top], [east, bottom]]
     }
+    this._box = box
     // box = [[69, -122], [-71, 43]]
     // box = [[80, 80], [-170, 170]]
 
@@ -74,7 +76,7 @@ class World {
       }
     }
     // this.projection.fitSize([this.width - 10, this.height - 10], shape)
-    let margin = 25
+    let margin = 50
     let extent = [[margin, 0], [500 - margin, 500]]
     this.projection.fitExtent(extent, shape)
 
@@ -106,8 +108,30 @@ class World {
   zoom(mult) {
     // let scale = fns.parseZoom(input)
     // this.projection.scale(scale)
-    let current = this.projection.scale()
-    this.projection.scale(current * mult)
+    // let scale = this.projection.scale()
+    // console.log('scale:', scale)
+    // let trans = this.projection.translate()
+    // console.log('trans:', trans)
+    // this.projection.scale(scale * 1.02)
+
+    let box = this._box
+    // console.log(box)
+    box[0][0] *= mult
+    box[0][1] *= mult
+    box[1][0] /= mult
+    box[1][1] /= mult
+    let shape = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [box[0], box[1]]
+      }
+    }
+    // this.projection.fitSize([this.width - 10, this.height - 10], shape)
+    let margin = 50
+    let extent = [[margin, 0], [500 - margin, 500]]
+    this.projection.fitExtent(extent, shape)
+
     return this
   }
   dot(obj) {
