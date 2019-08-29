@@ -1,62 +1,51 @@
-const somehowMaps = require('./src')
+/* global requestAnimationFrame */
+const THREE = require('three')
+require('./src/TerrainLoader')
+require('./src/TrackballControls')
 
-let w = somehowMaps({
-  // height: 200,
-  // aspect: 'widescreen'
+var width = 800,
+  height = 600
+
+var scene = new THREE.Scene()
+scene.add(new THREE.AmbientLight(0xeeeeee))
+// scene.background = 0xfdfdfd
+
+scene.background = new THREE.Color(0xfdfdfd)
+
+var camera = new THREE.PerspectiveCamera(85, width / height, 0.1, 1000)
+camera.position.set(0, -30, 30)
+
+var renderer = new THREE.WebGLRenderer()
+renderer.setSize(width, height)
+
+var terrainLoader = new THREE.TerrainLoader()
+terrainLoader.load('./assets/jotunheimen.bin', function(data) {
+  var geometry = new THREE.PlaneGeometry(60, 60, 199, 199)
+
+  for (var i = 0, l = geometry.vertices.length; i < l; i++) {
+    geometry.vertices[i].z = (data[i] / 65535) * 5
+  }
+
+  // var material = new THREE.MeshPhongMaterial({
+  //   map: THREE.ImageUtils.loadTexture('../assets/jotunheimen-texture.jpg')
+  // })
+  var material = new THREE.MeshPhongMaterial({
+    color: 0xdddddd,
+    wireframe: true
+  })
+
+  var plane = new THREE.Mesh(geometry, material)
+  scene.add(plane)
 })
 
-// w.background('states')
-w.background('world')
-// w.background('rivers')
+var controls = new THREE.TrackballControls(camera)
 
-//   ALWAYS USE
-//  [ lat, lng ]
-//  [ Y, X ]
-//  [90->90,   -180, 180]
+document.getElementById('webgl').appendChild(renderer.domElement)
 
-// toronto
-// [43, -79]
-// [north +,  west -]
+function render() {
+  controls.update()
+  requestAnimationFrame(render)
+  renderer.render(scene, camera)
+}
 
-w.line()
-  .from('toronto')
-  // .to('cape town')
-  .to('montreal')
-  .color('red')
-// w.line()
-//   .from('iran')
-//   .to('france')
-//   .color('blue')
-// w.line()
-//   .set([[69, -122], [-71, 163]])
-
-// .color('green')
-// w.line()
-//   .from([-58.3961, -50.6601])
-//   .to([-22.3961, -43.6601])
-//   .color('orange')
-
-// w.line()
-//   .from('vancouver')
-//   .to('ghana')
-// w.longitude()
-//   .at('toronto')
-//   .color('blue')
-
-// w.clip(true)
-// w.graticule()
-// w.globe()
-
-// w.center([-72, 43])
-// w.center([43, -79])
-// w.center('toronto')
-// w.fit('germany')
-w.fit()
-w.zoom(1.1)
-
-let el = document.querySelector('#stage')
-el.innerHTML = w.build()
-
-el.addEventListener('resize', () => {
-  console.log('SVG resized.')
-})
+render()
