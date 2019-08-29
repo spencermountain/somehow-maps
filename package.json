@@ -7,10 +7,10 @@
   "author": "Spencer Kelly (spencermountain)",
   "homepage": "https://github.com/spencermountain/somehow-geo",
   "scripts": {
-    "start": "budo index.js:assets/bundle.js --live",
+    "start": "budo src/index.js:assets/bundle.js --live",
     "watch": "npm run start",
     "build": "node scripts/build.js",
-    "build:demo": "browserify index.js -t [ babelify --presets [ @babel/preset-env ] ] | derequire > ./assets/bundle.js"
+    "build:demo": "browserify src/index.js -t [ babelify --presets [ @babel/preset-env ] ] | derequire > ./assets/bundle.js"
   },
   "prettier": {
     "trailingComma": "none",
