@@ -2,11 +2,12 @@ const THREE = require('../assets/three.js')
 require('../assets/controls.js')
 const drawThreeGeo = require('./three-geojson.js')
 
-const width = 500
-const height = 400
+const width = 800
+const height = 500
 
 //New scene and camera
 var scene = new THREE.Scene()
+scene.background = new THREE.Color(0xfdfdfd)
 var camera = new THREE.PerspectiveCamera(75, width / height, 0.5, 1000)
 //New Renderer
 var renderer = new THREE.WebGLRenderer()
@@ -18,19 +19,30 @@ var planet = new THREE.Object3D()
 var geometry = new THREE.SphereGeometry(10, 32, 32)
 var material = new THREE.MeshBasicMaterial({
   color: 0x333333,
-  wireframe: true,
+  wireframe: false,
   transparent: true
 })
 var sphere = new THREE.Mesh(geometry, material)
 planet.add(sphere)
 //Draw the GeoJSON
-$.getJSON('src/countries.json', function(data) {
+$.getJSON('src/data/countries.json', function(data) {
   drawThreeGeo(
     data,
     10,
     'sphere',
     {
-      color: 0x80ff80
+      color: 0xffffff
+    },
+    planet
+  )
+})
+$.getJSON('src/data/states.json', function(data) {
+  drawThreeGeo(
+    data,
+    10,
+    'sphere',
+    {
+      color: 0xdedded
     },
     planet
   )
