@@ -1,51 +1,33 @@
-/* global requestAnimationFrame */
-const THREE = require('three')
-require('./src/TerrainLoader')
-require('./src/TrackballControls')
+// const OSMBuildings = require('osmbuildings')
+// const OSMBuildings = require('./assets/osmBuildings')
 
-var width = 800,
-  height = 600
+// console.log(OSMBuildings)
+// // map.addMapTiles('https://{s}.tiles.mapbox.com/v3/[YOUR_MAPBOX_KEY]/{z}/{x}/{y}.png')
 
-var scene = new THREE.Scene()
-scene.add(new THREE.AmbientLight(0xeeeeee))
-// scene.background = 0xfdfdfd
+// map.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.2/anonymous/tile/{z}/{x}/{y}.json')
 
-scene.background = new THREE.Color(0xfdfdfd)
+// https://www.openstreetmap.org/way/15560300#map=17/43.65441/-79.43705
+// https://d.data.osmbuildings.org/0.2/anonymous/tile/15/9153/11958.json
+var map = new OSMBuildings({
+  container: 'map',
+  backgroundColor: '#fdfdfd',
+  position: { latitude: 43.65453, longitude: -79.43413 },
+  zoom: 17.5,
 
-var camera = new THREE.PerspectiveCamera(85, width / height, 0.1, 1000)
-camera.position.set(0, -30, 30)
+  minZoom: 15,
 
-var renderer = new THREE.WebGLRenderer()
-renderer.setSize(width, height)
+  maxZoom: 20,
 
-var terrainLoader = new THREE.TerrainLoader()
-terrainLoader.load('./assets/jotunheimen.bin', function(data) {
-  var geometry = new THREE.PlaneGeometry(60, 60, 199, 199)
-
-  for (var i = 0, l = geometry.vertices.length; i < l; i++) {
-    geometry.vertices[i].z = (data[i] / 65535) * 5
-  }
-
-  // var material = new THREE.MeshPhongMaterial({
-  //   map: THREE.ImageUtils.loadTexture('../assets/jotunheimen-texture.jpg')
-  // })
-  var material = new THREE.MeshPhongMaterial({
-    color: 0xdddddd,
-    wireframe: true
-  })
-
-  var plane = new THREE.Mesh(geometry, material)
-  scene.add(plane)
+  tilt: 25
 })
+console.log(map)
+const dufferinMall = require('./data/dufferinMall.json')
+map.addGeoJSON(dufferinMall)
+const cycling = require('./data/subway.json')
+map.addGeoJSON(cycling)
 
-var controls = new THREE.TrackballControls(camera)
+// map.addMapTiles(
+//   'https://{s}.tiles.mapbox.com/v3/pk.eyJ1Ijoic3BlbmNlcm1vdW50YWluIiwiYSI6Inp5UVZEY3cifQ.dh-_SvkPgv9YOQZLG5ZHKg/{z}/{x}/{y}.png'
+// )
 
-document.getElementById('webgl').appendChild(renderer.domElement)
-
-function render() {
-  controls.update()
-  requestAnimationFrame(render)
-  renderer.render(scene, camera)
-}
-
-render()
+// map.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.2/anonymous/tile/{z}/{x}/{y}.json')
