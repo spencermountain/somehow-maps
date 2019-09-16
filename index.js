@@ -24,11 +24,12 @@ const INITIAL_VIEW_STATE = {
   latitude: 43.6542,
   longitude: -79.5074,
   zoom: 6.8,
-  bearing: 70,
+  bearing: -45,
   pitch: 50
 }
 
 let layers = [
+  // { id: 'lakeSuperior', elevation: 183 },
   { id: 'lakeHuron', elevation: 176 },
   { id: 'stClairNorth', elevation: 175 },
   { id: 'lakeStClair', elevation: 175 },
