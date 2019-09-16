@@ -6,7 +6,9 @@
       "type": "Feature",
       "properties": {
         "name": "Dufferin Mall",
-        "type": "retail"
+        "type": "retail",
+        "valuePerSqm": 4563,
+        "growth": 0.3592
       },
       "geometry": {
         "type": "Polygon",
@@ -110,7 +112,9 @@
       "properties": {
         "name": "Our Lady Queen of Croatia",
         "type": "church",
-        "height": 20
+        "height": 20,
+        "valuePerSqm": 4563,
+        "growth": 0.3592
       },
       "geometry": {
         "type": "Polygon",

@@ -1,33 +1,81 @@
-// const OSMBuildings = require('osmbuildings')
-// const OSMBuildings = require('./assets/osmBuildings')
+const Deck = require('@deck.gl/core').Deck
+const layers = require('@deck.gl/layers')
+const GeoJsonLayer = layers.GeoJsonLayer
+const PolygonLayer = layers.PolygonLayer
 
-// console.log(OSMBuildings)
-// // map.addMapTiles('https://{s}.tiles.mapbox.com/v3/[YOUR_MAPBOX_KEY]/{z}/{x}/{y}.png')
+// source: Natural Earth http://www.naturalearthdata.com/ via geojson.xyz
+const COUNTRIES =
+  'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_scale_rank.geojson' //eslint-disable-line
+const subway = './data/subway.json'
 
-// map.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.2/anonymous/tile/{z}/{x}/{y}.json')
+const INITIAL_VIEW_STATE = {
+  // latitude: 49.2573,
+  // longitude: -123.1241,
+  latitude: 43.6542,
+  longitude: -79.5074,
+  zoom: 10,
+  bearing: 0,
+  pitch: 30
+}
 
-// https://www.openstreetmap.org/way/15560300#map=17/43.65441/-79.43705
-// https://d.data.osmbuildings.org/0.2/anonymous/tile/15/9153/11958.json
-var map = new OSMBuildings({
-  container: 'map',
-  backgroundColor: '#fdfdfd',
-  position: { latitude: 43.65453, longitude: -79.43413 },
-  zoom: 17.5,
+const landCover = [[[-79.0, 43.7], [-74.02, 40.7], [-74.02, 40.72], [-74.0, 40.72]]]
+// 'https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/geojson/vancouver-blocks.json'
+const deck = new Deck({
+  initialViewState: INITIAL_VIEW_STATE,
+  controller: true,
+  layers: [
+    new PolygonLayer({
+      id: 'ground',
+      data: landCover,
+      stroked: false,
+      getPolygon: f => f,
+      getFillColor: [0, 0, 0, 0]
+    }),
+    new GeoJsonLayer({
+      id: 'geojson',
+      data: './data/dufferinMall.json',
+      opacity: 1,
+      stroked: true,
+      filled: true,
+      extruded: true,
+      wireframe: false,
+      getElevation: f => {
+        console.log(f)
+        return 100
+      },
+      getFillColor: f => [120, 120, 120],
+      getLineColor: [0, 0, 0],
+      pickable: true,
+      onHover: this._onHover
+    }),
 
-  minZoom: 15,
-
-  maxZoom: 20,
-
-  tilt: 25
+    new GeoJsonLayer({
+      id: 'base-map',
+      data: COUNTRIES,
+      // Styles
+      stroked: true,
+      filled: true,
+      lineWidthMinPixels: 2,
+      opacity: 0.4,
+      // getLineDashArray: [3, 3],
+      getLineColor: [60, 60, 60],
+      getFillColor: [200, 200, 200]
+    }),
+    new GeoJsonLayer({
+      id: 'subway',
+      data: subway,
+      // Styles
+      stroked: true,
+      filled: true,
+      lineWidthMinPixels: 2,
+      opacity: 0.4,
+      // getLineDashArray: [3, 3],
+      getLineColor: [60, 60, 60],
+      getFillColor: [200, 200, 200]
+    })
+  ]
 })
-console.log(map)
-const dufferinMall = require('./data/dufferinMall.json')
-map.addGeoJSON(dufferinMall)
-const cycling = require('./data/subway.json')
-map.addGeoJSON(cycling)
 
-// map.addMapTiles(
-//   'https://{s}.tiles.mapbox.com/v3/pk.eyJ1Ijoic3BlbmNlcm1vdW50YWluIiwiYSI6Inp5UVZEY3cifQ.dh-_SvkPgv9YOQZLG5ZHKg/{z}/{x}/{y}.png'
-// )
-
-// map.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.2/anonymous/tile/{z}/{x}/{y}.json')
+// For automated test cases
+/* global document */
+document.body.style.margin = '0px'

@@ -20,6 +20,8 @@
     "printWidth": 100
   },
   "dependencies": {
+    "@deck.gl/core": "^7.2.3",
+    "@deck.gl/layers": "^7.2.3",
     "d3-geo": "1.11.6",
     "htm": "2.2.1",
     "osmbuildings": "^0.2.0-b",
