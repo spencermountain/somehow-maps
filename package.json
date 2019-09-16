@@ -20,27 +20,27 @@
     "printWidth": 100
   },
   "dependencies": {
-    "@deck.gl/core": "^7.2.3",
-    "@deck.gl/layers": "^7.2.3",
+    "@deck.gl/core": "7.2.4",
+    "@deck.gl/layers": "7.2.4",
     "d3-geo": "1.11.6",
     "htm": "2.2.1",
     "osmbuildings": "^0.2.0-b",
-    "somehow": "0.1.4",
-    "spacetime": "6.0.0",
+    "somehow": "0.3.1",
+    "spacetime": "6.0.1",
     "spencer-color": "^0.1.0",
     "three": "^0.108.0",
-    "topojson-client": "^3.0.0",
     "vhtml": "^2.1.0"
   },
   "devDependencies": {
-    "@babel/core": "7.5.5",
-    "@babel/preset-env": "7.5.5",
+    "@babel/core": "7.6.0",
+    "@babel/preset-env": "7.6.0",
     "babelify": "10.0.0",
     "budo": "11.6.3",
     "derequire": "2.0.6",
     "osm-pbf-parser": "^2.3.0",
     "shelljs": "^0.8.3",
-    "terser": "4.2.1"
+    "terser": "4.3.1",
+    "topojson-client": "^3.0.1"
   },
   "licence": "MIT"
 }
