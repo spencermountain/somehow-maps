@@ -1,5 +1,4 @@
 const Deck = require('@deck.gl/core').Deck
-// const FlyToInterpolator = require('@deck.gl/FlyToInterpolator')
 const GeoJsonLayer = require('@deck.gl/layers').GeoJsonLayer
 const scaleLinear = require('./scale')
 
@@ -14,8 +13,10 @@ const data = {
   stClairNorth: './data/st-clair-north.json',
   stClairSouth: './data/st-clair-south.json',
   niagaraSouth: './data/niagara-south.json',
-  niagaraNorth: './data/niagara-north.json',
-  thamesRiver: './data/thames-river.json'
+  niagaraNorth: './data/niagara-north.json'
+  // thamesRiver: './data/thames-river.json',
+  // upperThames: './data/upper-thames.json',
+  // middleThames: './data/middle-thames.json'
 }
 
 let scale = scaleLinear({
@@ -43,20 +44,22 @@ let layers = [
   { id: 'niagara-south', elevation: 173 },
   { id: 'niagaraSouth', elevation: 170 },
   { id: 'niagaraNorth', elevation: 76 },
-  { id: 'lakeOntario', elevation: 74 },
-  { id: 'thamesRiver', elevation: 74 }
+  { id: 'lakeOntario', elevation: 74 }
+  // { id: 'thamesRiver', elevation: 200 },
+  // { id: 'upperThames', elevation: 230 },
+  // { id: 'middleThames', elevation: 220 },
 ]
 layers = layers.map(o => {
   return new GeoJsonLayer({
     id: o.id,
     data: data[o.id],
-    stroked: false,
+    stroked: true,
     filled: true,
     extruded: true,
-    lineWidthMinPixels: 2,
     opacity: 1,
     getElevation: scale(o.elevation),
-    getFillColor: [70, 130, 180]
+    getFillColor: [70, 130, 180],
+    getStrokeColor: [70, 130, 180]
   })
 })
 
@@ -71,7 +74,7 @@ setTimeout(() => {
     viewState: {
       latitude: latitude,
       longitude: longitude,
-      bearing: 20,
+      bearing: 34,
       zoom: 6.8,
       pitch: 50,
       transitionEasing: function(t) {

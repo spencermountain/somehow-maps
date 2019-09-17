@@ -22,6 +22,7 @@
   "dependencies": {
     "@deck.gl/core": "7.2.4",
     "@deck.gl/layers": "7.2.4",
+    "@deck.gl/mesh-layers": "^7.2.4",
     "d3-geo": "1.11.6",
     "htm": "2.2.1",
     "osmbuildings": "^0.2.0-b",
@@ -40,7 +41,8 @@
     "osm-pbf-parser": "^2.3.0",
     "shelljs": "^0.8.3",
     "terser": "4.3.1",
-    "topojson-client": "^3.0.1"
+    "topojson-client": "^3.0.1",
+    "turf-line-to-polygon": "^0.2.1"
   },
   "licence": "MIT"
 }
