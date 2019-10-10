@@ -14,17 +14,12 @@ const data = {
   stClairSouth: './data/st-clair-south.json',
   niagaraSouth: './data/niagara-south.json',
   niagaraNorth: './data/niagara-north.json'
-  // thamesRiver: './data/thames-river.json',
-  // upperThames: './data/upper-thames.json',
-  // middleThames: './data/middle-thames.json'
 }
 
 let scale = scaleLinear({
   world: [0, 30000],
   minmax: [0, 180]
 })
-
-// cn tower - 553 m
 
 const INITIAL_VIEW_STATE = {
   latitude: latitude,
@@ -35,7 +30,6 @@ const INITIAL_VIEW_STATE = {
 }
 
 let layers = [
-  // { id: 'lakeSuperior', elevation: 183 },
   { id: 'lakeHuron', elevation: 176 },
   { id: 'stClairNorth', elevation: 175 },
   { id: 'lakeStClair', elevation: 175 },
@@ -45,10 +39,8 @@ let layers = [
   { id: 'niagaraSouth', elevation: 170 },
   { id: 'niagaraNorth', elevation: 76 },
   { id: 'lakeOntario', elevation: 74 }
-  // { id: 'thamesRiver', elevation: 200 },
-  // { id: 'upperThames', elevation: 230 },
-  // { id: 'middleThames', elevation: 220 },
 ]
+
 layers = layers.map(o => {
   return new GeoJsonLayer({
     id: o.id,
@@ -65,23 +57,48 @@ layers = layers.map(o => {
 
 let deck = new Deck({
   initialViewState: INITIAL_VIEW_STATE,
-  controller: true,
+  controller: {
+    scrollZoom: false,
+    dragPan: false
+  },
   layers: layers
 })
 
-setTimeout(() => {
+window.zoomIn = () => {
   deck.setProps({
     viewState: {
       latitude: latitude,
       longitude: longitude,
       bearing: 34,
-      zoom: 6.8,
+      zoom: 7.8,
       pitch: 50,
       transitionEasing: function(t) {
         return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1
       },
-      transitionDuration: 3000
+      transitionDuration: 8000
     }
   })
-}, 4000)
-// document.body.style.margin = '0px'
+}
+
+window.zoomOut = () => {
+  deck.setProps({
+    viewState: {
+      latitude: 43.6542,
+      longitude: -79.5074,
+      zoom: 6.8,
+      bearing: -45,
+      pitch: 50,
+      transitionEasing: function(t) {
+        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1
+      },
+      transitionDuration: 8000
+    }
+  })
+}
+
+// setTimeout(() => {
+// window.zoomIn()
+//   setTimeout(() => {
+//     window.zoomOut()
+//   }, 8000)
+// }, 4000)
