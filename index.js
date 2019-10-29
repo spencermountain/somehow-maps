@@ -12,10 +12,20 @@ let scale = scaleLinear({
 })
 
 const INITIAL_VIEW_STATE = {
-  latitude: latitude,
-  longitude: longitude,
-  zoom: 13.8,
-  // bearing: -45,
+  // latitude: latitude,
+  // longitude: longitude,
+  // // bearing: -45,
+  // pitch: 50
+  zoom: 14.0,
+  altitude: 1.5,
+  bearing: -66.66666666666666,
+  height: 1010,
+  latitude: 43.66299977225194,
+  longitude: -79.36288959277174,
+  maxPitch: 60,
+  maxZoom: 20,
+  minPitch: 0,
+  minZoom: 0,
   pitch: 50
 }
 
@@ -30,8 +40,8 @@ let layers = [
 ]
 
 const color = function() {
-  let r = Math.random() * 10
-  return [163 + r, 155, 149]
+  let r = Math.random() * 50
+  return [237 + r, 240 + r, 238 + r]
 }
 
 layers = layers.map(o => {
@@ -42,7 +52,7 @@ layers = layers.map(o => {
     stroked: false,
     filled: true,
     extruded: true,
-    opacity: 1,
+    opacity: 0.8,
     getElevation: scale(o.elevation || 0.2),
     getFillColor: () => {
       return o.fill || color()
@@ -107,3 +117,7 @@ let deck = new Deck({
   controller: true,
   layers: layers
 })
+
+// setInterval(() => {
+//   console.log(deck)
+// }, 1000)
