@@ -3,8 +3,8 @@ const GeoJsonLayer = require('@deck.gl/layers').GeoJsonLayer
 const scaleLinear = require('./scale')
 const properties = require('./properties')
 
-const latitude = 43.6477
-const longitude = -79.4232
+const latitude = 43.6528
+const longitude = -79.37
 
 let scale = scaleLinear({
   world: [0, 30000],
@@ -14,15 +14,13 @@ let scale = scaleLinear({
 const INITIAL_VIEW_STATE = {
   latitude: latitude,
   longitude: longitude,
-  zoom: 15.8,
+  zoom: 13.8,
   // bearing: -45,
   pitch: 50
 }
 
 let layers = [
-  // { id: 'dufferin', path: './data/dufferinMall.json', elevation: 0.6 },
   { id: 'buildings', path: './data/west-end.json', elevation: 0.2 },
-  // { id: 'dundas', path: './data/dundas.json', elevation: 0.1 }
   {
     id: 'greatLakes',
     path: './data/lake-ontario-partial.json',
@@ -50,43 +48,59 @@ layers = layers.map(o => {
       return o.fill || color()
     },
     pickable: true,
-    getStrokeColor: [70, 130, 180],
-    onClick: ({ object, x, y }) => {
-      console.log(object)
-    }
+    getStrokeColor: [70, 130, 180]
+    // onClick: ({ object, x, y }) => {
+    //   console.log(object)
+    // }
   })
 })
 
 layers.push(
   new GeoJsonLayer({
-    data: './data/dundas.json',
-    pickable: true,
+    id: 'subway',
+    data: './data/subway.json',
+    pickable: false,
     stroked: false,
     filled: true,
     extruded: true,
     lineWidthScale: 10,
     lineWidthMinPixels: 2,
     getFillColor: [160, 160, 180, 200],
-    getLineColor: [194, 192, 190],
+    getLineColor: [194, 22, 30],
     getRadius: 100,
-    getLineWidth: 1
+    getLineWidth: 4
   })
 )
-// layers.push(
-//   new GeoJsonLayer({
-//     data: './data/bloor-line.json',
-//     pickable: true,
-//     stroked: false,
-//     filled: true,
-//     extruded: true,
-//     lineWidthScale: 10,
-//     lineWidthMinPixels: 2,
-//     getFillColor: [160, 160, 180, 200],
-//     getLineColor: [194, 22, 30],
-//     getRadius: 100,
-//     getLineWidth: 1
-//   })
-// )
+layers.push(
+  new GeoJsonLayer({
+    id: 'ontario-east',
+    data: './data/ontario-line-east.json',
+    pickable: false,
+    stroked: true,
+    filled: true,
+    extruded: true,
+    lineWidthScale: 10,
+    lineWidthMinPixels: 2,
+    getLineColor: [97, 34, 156],
+    getRadius: 100,
+    getLineWidth: 4
+  })
+)
+layers.push(
+  new GeoJsonLayer({
+    id: 'ontario-west',
+    data: './data/ontario-west.json',
+    pickable: false,
+    stroked: true,
+    filled: true,
+    extruded: true,
+    lineWidthScale: 10,
+    lineWidthMinPixels: 2,
+    getLineColor: [97, 34, 156],
+    getRadius: 100,
+    getLineWidth: 4
+  })
+)
 
 let deck = new Deck({
   initialViewState: INITIAL_VIEW_STATE,
