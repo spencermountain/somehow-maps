@@ -1,20 +1,10 @@
 const Deck = require('@deck.gl/core').Deck
 const GeoJsonLayer = require('@deck.gl/layers').GeoJsonLayer
 const scaleLinear = require('./scale')
+const properties = require('./properties')
 
-const latitude = 43.6542
-const longitude = -79.5074
-
-const data = {
-  lakeOntario: './data/lake-ontario.json',
-  lakeHuron: './data/lake-huron.json',
-  lakeErie: './data/lake-erie.json',
-  lakeStClair: './data/lake-st-clair.json',
-  stClairNorth: './data/st-clair-north.json',
-  stClairSouth: './data/st-clair-south.json',
-  niagaraSouth: './data/niagara-south.json',
-  niagaraNorth: './data/niagara-north.json'
-}
+const latitude = 43.6477
+const longitude = -79.4232
 
 let scale = scaleLinear({
   world: [0, 30000],
@@ -24,81 +14,82 @@ let scale = scaleLinear({
 const INITIAL_VIEW_STATE = {
   latitude: latitude,
   longitude: longitude,
-  zoom: 6.8,
-  bearing: -45,
+  zoom: 15.8,
+  // bearing: -45,
   pitch: 50
 }
 
 let layers = [
-  { id: 'lakeHuron', elevation: 176 },
-  { id: 'stClairNorth', elevation: 175 },
-  { id: 'lakeStClair', elevation: 175 },
-  { id: 'stClairSouth', elevation: 174 },
-  { id: 'lakeErie', elevation: 173 },
-  { id: 'niagara-south', elevation: 173 },
-  { id: 'niagaraSouth', elevation: 170 },
-  { id: 'niagaraNorth', elevation: 76 },
-  { id: 'lakeOntario', elevation: 74 }
+  // { id: 'dufferin', path: './data/dufferinMall.json', elevation: 0.6 },
+  { id: 'buildings', path: './data/west-end.json', elevation: 0.2 },
+  // { id: 'dundas', path: './data/dundas.json', elevation: 0.1 }
+  {
+    id: 'greatLakes',
+    path: './data/lake-ontario-partial.json',
+    elevation: 0.01,
+    fill: [91, 131, 186]
+  }
 ]
 
+const color = function() {
+  let r = Math.random() * 10
+  return [163 + r, 155, 149]
+}
+
 layers = layers.map(o => {
+  // let prop = properties[o.id] || {}
   return new GeoJsonLayer({
     id: o.id,
-    data: data[o.id],
-    stroked: true,
+    data: o.path,
+    stroked: false,
     filled: true,
     extruded: true,
     opacity: 1,
-    getElevation: scale(o.elevation),
-    getFillColor: [70, 130, 180],
-    getStrokeColor: [70, 130, 180]
+    getElevation: scale(o.elevation || 0.2),
+    getFillColor: () => {
+      return o.fill || color()
+    },
+    pickable: true,
+    getStrokeColor: [70, 130, 180],
+    onClick: ({ object, x, y }) => {
+      console.log(object)
+    }
   })
 })
+
+layers.push(
+  new GeoJsonLayer({
+    data: './data/dundas.json',
+    pickable: true,
+    stroked: false,
+    filled: true,
+    extruded: true,
+    lineWidthScale: 10,
+    lineWidthMinPixels: 2,
+    getFillColor: [160, 160, 180, 200],
+    getLineColor: [194, 192, 190],
+    getRadius: 100,
+    getLineWidth: 1
+  })
+)
+// layers.push(
+//   new GeoJsonLayer({
+//     data: './data/bloor-line.json',
+//     pickable: true,
+//     stroked: false,
+//     filled: true,
+//     extruded: true,
+//     lineWidthScale: 10,
+//     lineWidthMinPixels: 2,
+//     getFillColor: [160, 160, 180, 200],
+//     getLineColor: [194, 22, 30],
+//     getRadius: 100,
+//     getLineWidth: 1
+//   })
+// )
 
 let deck = new Deck({
   initialViewState: INITIAL_VIEW_STATE,
-  controller: {
-    scrollZoom: false,
-    dragPan: false
-  },
+  controller: true,
   layers: layers
 })
-
-window.zoomIn = () => {
-  deck.setProps({
-    viewState: {
-      latitude: latitude,
-      longitude: longitude,
-      bearing: 34,
-      zoom: 7.8,
-      pitch: 50,
-      transitionEasing: function(t) {
-        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1
-      },
-      transitionDuration: 8000
-    }
-  })
-}
-
-window.zoomOut = () => {
-  deck.setProps({
-    viewState: {
-      latitude: 43.6542,
-      longitude: -79.5074,
-      zoom: 6.8,
-      bearing: -45,
-      pitch: 50,
-      transitionEasing: function(t) {
-        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1
-      },
-      transitionDuration: 8000
-    }
-  })
-}
-
-// setTimeout(() => {
-// window.zoomIn()
-//   setTimeout(() => {
-//     window.zoomOut()
-//   }, 8000)
-// }, 4000)

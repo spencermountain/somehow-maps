@@ -26,9 +26,11 @@
     "d3-geo": "1.11.6",
     "htm": "2.2.1",
     "osmbuildings": "^0.2.0-b",
+    "pure-md5": "^0.1.9",
     "somehow": "0.3.2",
     "spacetime": "6.1.0",
     "spencer-color": "^0.1.0",
+    "sunday-driver": "^1.0.2",
     "three": "0.109.0",
     "vhtml": "^2.1.0"
   },
