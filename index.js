@@ -20,7 +20,7 @@ const INITIAL_VIEW_STATE = {
 }
 
 let layers = [
-  { id: 'buildings', path: './data/west-end.json', elevation: 0.2 },
+  { id: 'buildings', path: './data/buildings.json', elevation: 0.2 },
   {
     id: 'greatLakes',
     path: './data/lake-ontario-partial.json',

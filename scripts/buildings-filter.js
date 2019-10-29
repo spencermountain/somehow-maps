@@ -9,12 +9,12 @@ const makeHash = function(chunk) {
 }
 
 const topLeft = {
-  lon: -79.5571,
-  lat: 43.6871
+  lon: -79.4321,
+  lat: 43.73115
 }
 const bottomRight = {
-  lon: -79.1942,
-  lat: 43.6249
+  lon: -79.28155,
+  lat: 43.62746
 }
 
 const sundayDriver = require('sunday-driver')
