@@ -10,10 +10,10 @@ const makeHash = function(chunk) {
 
 const topLeft = {
   lon: -79.4321,
-  lat: 43.73115
+  lat: 43.72415
 }
 const bottomRight = {
-  lon: -79.28155,
+  lon: -79.31,
   lat: 43.62746
 }
 
