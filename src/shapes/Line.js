@@ -15,8 +15,7 @@ class Line extends Shape {
       extruded: true,
       lineWidthScale: 10,
       lineWidthMinPixels: 2,
-      getFillColor: [160, 160, 180, 200],
-      getLineColor: [194, 22, 30],
+      getLineColor: this._color,
       getRadius: 100,
       getLineWidth: 4
     })

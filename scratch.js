@@ -1,7 +1,8 @@
 const somehowGeo = require('./src')
 
 let w = somehowGeo({
-  el: '#stage'
+  el: '#stage',
+  controller: true
 })
 w.line({
   data: './data/subway.json'
@@ -10,6 +11,10 @@ w.line({
 w.shape({
   data: './data/great-lakes.json'
 }).color('blue')
+
+w.line({
+  data: './data/world.json'
+}).color('grey')
 
 let timeout = false
 // window.resize event listener

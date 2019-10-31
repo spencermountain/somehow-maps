@@ -1,12 +1,14 @@
-const Deck = require('@deck.gl/core').Deck
+// const Deck = require('@deck.gl/core').Deck
 const fitAspect = require('fit-aspect-ratio')
 const Shape = require('./shapes/Shape')
 const Line = require('./shapes/Line')
+const { Deck } = require('@deck.gl/core')
 
 const INITIAL_VIEW_STATE = {
   zoom: 7.0,
   altitude: 1.5,
   height: 1010,
+  bearing: 0,
   latitude: 43.66,
   longitude: -79.36,
   maxPitch: 60,
@@ -32,9 +34,7 @@ class World {
       this.width = res.width || 100
       this.height = res.height || 100
     }
-    this._controller = {
-      scrollZoom: false
-    }
+    this._controller = obj.contoller || { scrollZoom: false }
     this.shapes = []
     if (typeof this.el === 'string') {
       this.el = document.querySelector(this.el)
@@ -73,12 +73,14 @@ class World {
       width: el.offsetWidth,
       height: el.offsetHeight
     })
+    console.log(this._controller)
     new Deck({
       gl: gl,
       width: el.offsetWidth,
       height: el.offsetHeight,
       initialViewState: this.state,
-      controller: this._controller,
+      controller: true,
+      // views: new OrthographicView(),
       layers: layers
     })
   }
