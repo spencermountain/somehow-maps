@@ -4,9 +4,8 @@ const Shape = require('./shapes/Shape')
 const Line = require('./shapes/Line')
 
 const INITIAL_VIEW_STATE = {
-  zoom: 12.0,
+  zoom: 7.0,
   altitude: 1.5,
-  bearing: -66.66,
   height: 1010,
   latitude: 43.66,
   longitude: -79.36,
@@ -21,7 +20,7 @@ class World {
   constructor(obj = {}) {
     this.width = 100
     this.height = 100
-    this._el = obj._el || obj.id || 'body'
+    this._el = obj.el || obj.id || 'body'
     this.state = Object.assign({}, INITIAL_VIEW_STATE, obj)
     obj.aspect = obj.aspect || 'widescreen'
     if (obj.aspect) {
@@ -33,7 +32,9 @@ class World {
       this.width = res.width || 100
       this.height = res.height || 100
     }
-    this._controller = true
+    this._controller = {
+      scrollZoom: false
+    }
     this.shapes = []
     if (typeof this.el === 'string') {
       this.el = document.querySelector(this.el)
@@ -55,13 +56,25 @@ class World {
   }
   build() {
     let el = document.querySelector(this._el)
+    window.el = el
     var canvas = document.createElement('canvas')
     el.appendChild(canvas)
-    let ctx = canvas.getContext('webgl')
+    let gl = canvas.getContext('webgl')
+
+    gl.viewport(0, 0, canvas.width, canvas.height)
+    gl.clearColor(1.0, 1.0, 1.0, 1.0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    // ctx.clearColor(255, 255, 255, 1.0)
+    // ctx.clear(ctx.COLOR_BUFFER_BIT)
+
     // build each deckgl layer
     let layers = this.shapes.map(s => s.build())
+    console.log({
+      width: el.offsetWidth,
+      height: el.offsetHeight
+    })
     new Deck({
-      gl: ctx,
+      gl: gl,
       width: el.offsetWidth,
       height: el.offsetHeight,
       initialViewState: this.state,

@@ -7,7 +7,7 @@ const toRgb = require('./fns/_rgb')
 class Shape {
   constructor(obj, world) {
     this._data = obj.data
-    this._color = obj.color || 'steelblue'
+    this._color = obj.color || [20, 20, 90]
     this._opacity = obj.opacity || 1
     this._id = obj.id || uuid()
   }
@@ -20,6 +20,7 @@ class Shape {
     return this
   }
   build() {
+    console.log(this._color)
     return new GeoJsonLayer({
       id: this._id,
       data: this._data,
