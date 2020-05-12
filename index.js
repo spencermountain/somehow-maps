@@ -1,58 +1,38 @@
 const somehowMaps = require('./src')
-
+const cities = require('/Users/spencer/mountain/somehow-geo/src/data/points/cities.js')
 let w = somehowMaps({
-  // height: 200,
-  // aspect: 'widescreen'
+  height: 500,
+  aspect: 'square'
 })
 
 // w.background('states')
 w.background('world')
 // w.background('rivers')
 
+Object.keys(cities).forEach((k) => {
+  if (cities[k][0] > 40 || cities[k][0] < -40) {
+    let dot = w.dot().at(cities[k])
+    dot.color('blue').radius(4)
+  } else {
+    // dot.color('lightblue').radius(4)
+  }
+})
 //   ALWAYS USE
 //  [ lat, lng ]
 //  [ Y, X ]
 //  [90->90,   -180, 180]
 
-// toronto
-// [43, -79]
-// [north +,  west -]
+w.latitude().at(40)
+w.latitude().at(-40)
 
-w.line()
-  .from('toronto')
-  // .to('cape town')
-  .to('montreal')
-  .color('red')
-// w.line()
-//   .from('iran')
-//   .to('france')
-//   .color('blue')
-// w.line()
-//   .set([[69, -122], [-71, 163]])
-
-// .color('green')
-// w.line()
-//   .from([-58.3961, -50.6601])
-//   .to([-22.3961, -43.6601])
-//   .color('orange')
-
-// w.line()
-//   .from('vancouver')
-//   .to('ghana')
-// w.longitude()
-//   .at('toronto')
-//   .color('blue')
-
-// w.clip(true)
-// w.graticule()
-// w.globe()
+w.clip(false)
+w.graticule()
+w.globe()
 
 // w.center([-72, 43])
-// w.center([43, -79])
-// w.center('toronto')
-// w.fit('germany')
-w.fit()
-w.zoom(1.1)
+w.rotate(70)
+// w.fit()
+// w.zoom(2)
 
 let el = document.querySelector('#stage')
 el.innerHTML = w.build()

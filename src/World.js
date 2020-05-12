@@ -47,19 +47,22 @@ class World {
     if (input) {
       box = fns.parseBounds(input)
     } else {
-      let ranges = this.shapes.map(sh => sh.bounds())
-      ranges = ranges.filter(o => o)
-      let east = fns.bounds(ranges.map(o => o.east)).min
-      let west = fns.bounds(ranges.map(o => o.west)).max
-      let top = fns.bounds(ranges.map(o => o.top)).min
-      let bottom = fns.bounds(ranges.map(o => o.bottom)).max
+      let ranges = this.shapes.map((sh) => sh.bounds())
+      ranges = ranges.filter((o) => o)
+      let east = fns.bounds(ranges.map((o) => o.east)).min
+      let west = fns.bounds(ranges.map((o) => o.west)).max
+      let top = fns.bounds(ranges.map((o) => o.top)).min
+      let bottom = fns.bounds(ranges.map((o) => o.bottom)).max
       // give it margins
       // east = east + 13
       // console.log(east)
       // top *= 1.01
       // bottom *= 1.1
       // east += 5
-      box = [[west, top], [east, bottom]]
+      box = [
+        [west, top],
+        [east, bottom]
+      ]
     }
     this._box = box
     // box = [[69, -122], [-71, 43]]
@@ -77,7 +80,10 @@ class World {
     }
     // this.projection.fitSize([this.width - 10, this.height - 10], shape)
     let margin = 50
-    let extent = [[margin, 0], [500 - margin, 500]]
+    let extent = [
+      [margin, 0],
+      [500 - margin, 500]
+    ]
     this.projection.fitExtent(extent, shape)
 
     return this
@@ -105,6 +111,9 @@ class World {
     let point = fns.parsePoint(input)
     this.projection.center(point)
   }
+  rotate(x = 0, y = -9) {
+    this.projection.rotate([x, y, -3])
+  }
   zoom(mult) {
     // let scale = fns.parseZoom(input)
     // this.projection.scale(scale)
@@ -129,7 +138,10 @@ class World {
     }
     // this.projection.fitSize([this.width - 10, this.height - 10], shape)
     let margin = 50
-    let extent = [[margin, 0], [500 - margin, 500]]
+    let extent = [
+      [margin, 0],
+      [500 - margin, 500]
+    ]
     this.projection.fitExtent(extent, shape)
 
     return this
@@ -168,8 +180,8 @@ class World {
     let h = this.html
     let shapes = this.shapes.sort((a, b) => (a._order > b._order ? 1 : -1))
     let elements = []
-    elements = elements.concat(shapes.map(shape => shape.build()))
-    elements = elements.concat(this.back.map(sh => sh.build()))
+    elements = elements.concat(shapes.map((shape) => shape.build()))
+    elements = elements.concat(this.back.map((sh) => sh.build()))
     let attrs = {
       // width: this.width,
       // height: this.height,
@@ -178,9 +190,9 @@ class World {
       style: 'margin: 10px 20px 25px 25px;' // border:1px solid lightgrey;
     }
     if (this._clip) {
-      attrs.style += 'overflow:hidden; border:1px solid #a3a5a5;'
+      attrs.style += 'overflow:visible; '
     } else {
-      attrs.style += 'overflow:visible; border:1px solid #a3a5a5;'
+      attrs.style += 'overflow:visible; '
     }
     return h`<svg ...${attrs}>
       ${elements}
