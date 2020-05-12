@@ -7,10 +7,10 @@
   "author": "Spencer Kelly (spencermountain)",
   "homepage": "https://github.com/spencermountain/somehow-geo",
   "scripts": {
-    "start": "budo index.js:assets/bundle.js --live",
+    "build": "rollup -c",
+    "start": "rollup -c -w",
     "watch": "npm run start",
-    "build": "node scripts/build.js",
-    "build:demo": "browserify index.js -t [ babelify --presets [ @babel/preset-env ] ] | derequire > ./assets/bundle.js"
+    "serve": "serve"
   },
   "prettier": {
     "trailingComma": "none",
@@ -21,22 +21,23 @@
   },
   "dependencies": {
     "d3-geo": "1.11.6",
-    "htm": "2.2.1",
-    "somehow": "0.1.4",
-    "spacetime": "6.0.0",
     "spencer-color": "^0.1.0",
-    "topojson-client": "^3.0.0",
-    "vhtml": "^2.1.0"
+    "topojson-client": "^3.0.0"
   },
   "devDependencies": {
-    "@babel/core": "7.5.5",
-    "@babel/preset-env": "7.4.4",
-    "babelify": "10.0.0",
-    "budo": "11.6.3",
-    "derequire": "2.0.6",
-    "osm-pbf-parser": "^2.3.0",
-    "shelljs": "^0.8.3",
-    "terser": "4.2.1"
+    "@rollup/plugin-commonjs": "11.1.0",
+    "@rollup/plugin-node-resolve": "^7.0.0",
+    "prettier": "^2.0.5",
+    "prettier-plugin-svelte": "^0.7.0",
+    "pug": "^2.0.4",
+    "rollup": "2.7.3",
+    "rollup-plugin-json": "^4.0.0",
+    "rollup-plugin-livereload": "^1.0.0",
+    "rollup-plugin-svelte": "^5.0.3",
+    "rollup-plugin-terser": "^5.1.2",
+    "serve": "^11.3.0",
+    "svelte": "^3.0.0",
+    "svelte-preprocess": "^3.7.4"
   },
   "licence": "MIT"
 }

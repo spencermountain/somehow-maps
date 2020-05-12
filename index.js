@@ -11,8 +11,8 @@ w.background('world')
 
 Object.keys(cities).forEach((k) => {
   if (cities[k][0] > 40 || cities[k][0] < -40) {
-    let dot = w.dot().at(cities[k])
-    dot.color('blue').radius(4)
+    // let dot = w.dot().at(cities[k])
+    // dot.color('blue').radius(4)
   } else {
     // dot.color('lightblue').radius(4)
   }
@@ -30,7 +30,7 @@ w.graticule()
 w.globe()
 
 // w.center([-72, 43])
-w.rotate(70)
+w.rotate(-70, 20)
 // w.fit()
 // w.zoom(2)
 
