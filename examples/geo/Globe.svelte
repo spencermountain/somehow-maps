@@ -1,5 +1,5 @@
 <script>
-  import { Globe, Line } from '../../src'
+  import { Globe, Line, Graticule, Dot } from '../../src'
 </script>
 
 <style>
@@ -7,8 +7,9 @@
 </style>
 
 <div>
-  hi
-  <Globe rotate={-90} tilt={10}>
+  <Globe rotate={0} tilt={40}>
+    <Graticule />
     <Line from="toronto" to={'jamaica'} />
+    <Dot at="vancouver" color="red" />
   </Globe>
 </div>

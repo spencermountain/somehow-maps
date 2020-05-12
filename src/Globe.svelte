@@ -10,11 +10,13 @@
   export let showCountries = true
   export let globe = true
 
-  let projection = d3Geo.geoOrthographic().scale(288)
+  let projection = d3Geo.geoOrthographic().scale(180)
+  projection.rotate([rotate, tilt, 3])
+  projection.translate([200, 200])
+
   if (globe === false) {
-    projection = d3Geo.geoMercator()
+    projection = d3Geo.geoMercator().scale(75)
   }
-  projection.rotate([rotate, tilt, -3])
   setContext('projection', projection)
 </script>
 
@@ -25,7 +27,6 @@
   }
 </style>
 
-<div>globe</div>
 <svg
   viewBox="0,0,{width},{height}"
   preserveAspectRatio="xMidYMid meet"
