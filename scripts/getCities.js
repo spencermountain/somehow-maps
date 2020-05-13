@@ -1,12 +1,114 @@
 const wtf = require('/Users/spencer/mountain/wtf_wikipedia/')
+let cities = [
+  'Mexico City',
+  'New York City',
+  'Los Angeles',
+  'Toronto',
+  'Chicago',
+  'Houston',
+  'Havana',
+  'Montreal',
+  'Ecatepec de Morelos',
+  'Philadelphia',
+  'Phoenix',
+  'San Antonio',
+  'Guadalajara',
+  'Puebla',
+  'San Diego',
+  'Juárez',
+  'León',
+  'Dallas',
+  'Tijuana',
+  'Calgary',
+  'Tegucigalpa',
+  'Zapopan',
+  'Monterrey',
+  'Managua',
+  'Nezahualcóyotl',
+  'San Jose',
+  'Santo Domingo',
+  'Guatemala City',
+  'Port-au-Prince',
+  'Naucalpan',
+  'Ottawa',
+  'Austin',
+  'Edmonton',
+  'Mérida',
+  'Querétaro',
+  'Toluca',
+  'Jacksonville',
+  'Chihuahua',
+  'San Francisco',
+  'Indianapolis',
+  'Columbus',
+  'Fort Worth',
+  'Charlotte',
+  'Hermosillo',
+  'Saltillo',
+  'Aguascalientes',
+  'Mississauga',
+  'San Luis Potosí',
+  'Veracruz',
+  'San Pedro Sula',
+  'Santiago de los Caballeros',
+  'Culiacán',
+  'Winnipeg',
+  'Mexicali',
+  'Cancún',
+  'Acapulco',
+  'Tlalnepantla',
+  'Seattle',
+  'Guadalupe',
+  'Denver',
+  'El Paso',
+  'Chimalhuacán',
+  'Detroit',
+  'Washington, D.C.',
+  'Kingston',
+  'Boston',
+  'Tlaquepaque',
+  'Memphis',
+  'Nashville',
+  'Torreón',
+  'Vancouver',
+  'Portland',
+  'Reynosa',
+  'Oklahoma City',
+  'Las Vegas',
+  'Baltimore',
+  'Brampton',
+  'Louisville',
+  'Morelia',
+  'Milwaukee',
+  'Tuxtla Gutiérrez',
+  'Apodaca',
+  'Durango',
+  'Villa Nueva',
+  'Albuquerque',
+  'Hamilton',
+  'Quebec City',
+  'Tonalá',
+  'Tucson',
+  'Cuautitlán Izcalli',
+  'Surrey',
+  'Ciudad López Mateos',
+  'Tultitlán',
+  'Fresno',
+  'Carrefour'
+]
 
-wtf.fetch('List of cities in Quebec', (err, doc) => {
-  let list = []
-  let tables = doc.tables()[0]
-  tables.json().map(row => {
-    let links = row.Name.links || [{}]
-    list.push(links[0].page)
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array)
+  }
+}
+
+;(async () => {
+  let final = []
+  await asyncForEach(cities, async function (name) {
+    let doc = await wtf.fetch(name)
+    let coord = doc.coordinates()[0] || {}
+    final.push({ name: name, lat: coord.lat, lon: coord.lon })
   })
-  list = list.filter(l => l)
-  console.log(JSON.stringify(list, null, 2))
-})
+  console.log(JSON.stringify(final, null, 2))
+})()

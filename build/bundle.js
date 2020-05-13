@@ -411,250 +411,89 @@ var app = (function () {
     //  latitude / longitude
     //  (-90|90) /  (-180|180)
     //
+    // places with more than 5m people
     var cities = {
-      tokyo: [35.68333, 139.68333],
-      'sao paulo': [-23.55, -46.63333],
-      jakarta: [-6.2, 106.81667],
-      seoul: [37.56667, 126.96667],
-      manila: [14.58, 121],
-      'new york city': [40.7127, -74.0059],
-      shanghai: [31.22861, 121.47472],
-      cairo: [30.04444, 31.23583],
+      tokyo: [35.68972, 139.69222],
       delhi: [28.61, 77.23],
+      shanghai: [31.22861, 121.47472],
+      'sao paulo': [-23.55, -46.63333],
       'mexico city': [19.43333, -99.13333],
-      beijing: [39.91667, 116.38333],
-      guangzhou: [23.132, 113.266],
+      cairo: [30.03333, 31.23333],
       mumbai: [18.975, 72.82583],
-      dhaka: [23.71611, 90.39611],
+      beijing: [39.9069, 116.3976],
+      dhaka: [23.76389, 90.38889],
       osaka: [34.69389, 135.50222],
-      moscow: [55.75, 37.61667],
-      bangkok: [13.7525, 100.49417],
+      'new york city': [40.661, -73.944],
       karachi: [24.86, 67.01],
-      istanbul: [41.01361, 28.955],
-      kolkata: [22.56667, 88.36667],
-      tehran: [35.68917, 51.38889],
-      'rio de janeiro': [-22.90833, -43.19639],
-      'ho chi minh': [10.8, 106.65],
-      kinshasa: [-4.325, 15.32222],
-      'los angeles': [34.05, -118.25],
-      vancouver: [49.3748, -123.0551],
-      lagos: [6.45503, 3.38408],
       'buenos aires': [-34.60333, -58.38167],
-      nanjing: [32.05, 118.76667],
-      shenzhen: [22.55, 114.1],
-      shantou: [23.354, 116.682],
+      chongqing: [29.5637, 106.5504],
+      istanbul: [41.01361, 28.955],
+      kolkata: [22.5726, 88.3639],
+      manila: [14.58, 121],
+      lagos: [6.45503, 3.38408],
+      'rio de janeiro': [-22.90833, -43.19639],
+      tianjin: [39.1336, 117.2054],
+      kinshasa: [-4.325, 15.32222],
+      guangzhou: [23.132, 113.266],
+      'los angeles': [34.05, -118.25],
+      moscow: [55.75583, 37.61722],
+      shenzhen: [22.5415, 114.0596],
       lahore: [31.54972, 74.34361],
-      paris: [48.8567, 2.3508],
-      chengdu: [30.657, 104.066],
-      nagoya: [35.18333, 136.9],
-      lima: [-12.04333, -77.02833],
-      london: [51.50722, -0.1275],
-      chicago: [41.83694, -87.68472],
-      bogotá: [4.71111, -74.07222],
-      kano: [12, 8.51667],
-      surabaya: [-7.26528, 112.7425],
-      chennai: [13.08333, 80.26667],
       bangalore: [12.98333, 77.58333],
-      bandung: [-6.912, 107.6097],
-      suzhou: [31.3, 120.6],
-      dongguan: [23.021, 113.752],
-      busan: [35.16667, 129.06667],
-      chongqing: [29.55833, 106.56667],
+      paris: [48.85661, 2.35222],
+      bogotá: [4.71111, -74.07222],
+      jakarta: [-6.2, 106.81667],
+      chennai: [13.08333, 80.26667],
+      lima: [-12.05, -77.03333],
+      bangkok: [13.7525, 100.49417],
+      seoul: [37.56667, 126.96667],
+      nagoya: [35.18333, 136.9],
       hyderabad: [17.37, 78.48],
-      'hong kong': [22.3, 114.2],
-      'kuala lumpur': [3.13333, 101.68333],
-      philadelphia: [39.95278, -75.16361],
-      baghdad: [33.33333, 44.38333],
-      taipei: [25.06667, 121.51667],
-      changsha: [28.228, 112.939],
-      wuhan: [30.58333, 114.28333],
-      casablanca: [33.53333, -7.58333],
-      tianjin: [39.13333, 117.18333],
-      hanoi: [21.02833, 105.85417],
-      harbin: [45.75, 126.63333],
-      santiago: [-33.45, -70.66667],
-      wenzhou: [28, 120.7],
+      london: [51.50722, -0.1275],
+      tehran: [35.68917, 51.38889],
+      chicago: [41.82192, -87.70304],
+      chengdu: [30.657, 104.066],
+      nanjing: [32.0614, 118.7636],
+      wuhan: [30.5934, 114.3046],
+      'ho chi minh city': [10.8, 106.65],
       luanda: [-8.83833, 13.23444],
-      madrid: [40.38333, -3.71667],
       ahmedabad: [23.03, 72.58],
-      shenyang: [41.8, 123.4],
+      'kuala lumpur': [3.14778, 101.69528],
+      "xi'an": [34.265, 108.954],
+      'hong kong': [22.3, 114.2],
+      dongguan: [23.021, 113.752],
+      hangzhou: [30.267, 120.153],
+      foshan: [23.0214, 113.1216],
+      shenyang: [41.8047, 123.434],
+      riyadh: [24.63333, 46.71667],
+      baghdad: [33.33333, 44.38333],
+      santiago: [-33.45, -70.66667],
+      surat: [21.17024, 72.83106],
+      madrid: [40.38333, -3.71667],
+      suzhou: [31.2998, 120.5853],
+      pune: [18.52028, 73.85667],
+      harbin: [45.7576, 126.6409],
+      houston: [29.76278, -95.38306],
+      dallas: [32.77917, -96.80889],
+      toronto: [43.74167, -79.37333],
+      'dar es salaam': [-6.8, 39.28333],
+      miami: [25.77528, -80.20889],
+      'belo horizonte': [-19.91667, -43.93333],
+      singapore: [1.28333, 103.83333],
+      philadelphia: [39.95278, -75.16361],
+      atlanta: [33.755, -84.39],
+      fukuoka: [33.58333, 130.4],
+      khartoum: [15.50056, 32.56],
+      barcelona: [41.38333, 2.18333],
+      johannesburg: [-26.20444, 28.04556],
       'saint petersburg': [59.9375, 30.30861],
       qingdao: [36.0669, 120.3827],
-      foshan: [23.01667, 113.11667],
-      toronto: [43.7, -79.4],
-      zunyi: [27.68333, 106.9],
-      vijayawada: [16.5193, 80.6305],
-      berlin: [52.51667, 13.38889],
-      jinan: [36.66667, 116.98333],
-      riyadh: [24.63333, 46.71667],
-      fukuoka: [33.58333, 130.4],
-      singapore: [1.28333, 103.83333],
-      khartoum: [15.50056, 32.56],
-      visakhapatnam: [17.70417, 83.29778],
+      dalian: [38.914, 121.6148],
+      'washington, d.c.': [38.90472, -77.01639],
       yangon: [16.85, 96.18333],
-      "xi'an": [34.265, 108.954],
-      'belo horizonte': [-19.91667, -43.93333],
-      dallas: [32.78333, -96.8],
-      hamburg: [53.56528, 10.00139],
-      sydney: [-33.865, 151.20944],
-      guayaquil: [-2.18333, -79.88333],
-      algiers: [36.75389, 3.05889],
-      houston: [29.76278, -95.38306],
-      ankara: [39.93333, 32.86667],
-      abidjan: [5.31667, -4.03333],
-      melbourne: [-37.81361, 144.96306],
-      barcelona: [41.38333, 2.18333],
-      quito: [-0.23333, -78.51667],
       alexandria: [31.2, 29.91667],
-      surat: [21.17024, 72.83106],
-      monterrey: [25.66667, -100.3],
-      'guatemala city': [14.61333, -90.53528],
-      fuzhou: [26.0753, 119.3082],
-      johannesburg: [-26.20444, 28.04556],
-      guadalajara: [20.67667, -103.3475],
-      'porto alegre': [-30.03306, -51.23],
-      'dar es salaam': [-6.8, 39.28333],
-      rome: [41.9, 12.5],
-      shijiazhuang: [38.06667, 114.48333],
-      giza: [30.01667, 31.21667],
-      changchun: [43.88694, 125.32472],
-      zhengzhou: [34.764, 113.684],
-      medan: [3.58333, 98.66667],
-      fortaleza: [-3.71833, -38.54278],
-      accra: [5.55, -0.2],
-      chittagong: [22.36667, 91.8],
-      isfahan: [32.64472, 51.6675],
-      dalian: [38.92083, 121.63917],
-      'new taipei': [25.01111, 121.44583],
-      salvador: [-12.97472, -38.47667],
-      brasilia: [-15.79389, -47.88278],
-      recife: [-8.05, -34.9],
-      'cape town': [-33.92528, 18.42389],
-      yokohama: [35.44417, 139.63806],
-      phoenix: [33.45, -112.06667],
-      i̇zmir: [38.42, 27.14],
-      cologne: [50.93639, 6.95278],
-      hangzhou: [30.25, 120.16667],
-      baku: [40.39528, 49.88222],
-      ningbo: [29.869, 121.554],
-      jeddah: [21.54333, 39.17278],
-      oran: [35.69694, -0.63306],
-      durban: [-29.88333, 31.05],
-      kabul: [34.53333, 69.16667],
-      montreal: [45.50889, -73.56167],
-      cali: [3.42056, -76.52222],
-      curitiba: [-25.41667, -49.25],
-      'addis ababa': [9.03, 38.74],
-      kiev: [50.45, 30.52333],
-      ibadan: [7.39639, 3.91667],
-      mashhad: [36.3, 59.6],
-      hefei: [31.86667, 117.28333],
-      budapest: [47.4925, 19.05139],
-      pyongyang: [39.01944, 125.73806],
-      kathmandu: [27.71139, 85.30861],
-      milan: [45.46667, 9.18333],
-      faisalabad: [31.41667, 73.09111],
-      tangshan: [39.631, 118.18],
-      semarang: [-6.96667, 110.41667],
-      nairobi: [-1.28333, 36.81667],
-      zhongshan: [22.517, 113.393],
-      pune: [18.52028, 73.85667],
-      warsaw: [52.23333, 21.01667],
-      campinas: [-22.90083, -47.05722],
-      jaipur: [26.9, 75.8],
-      incheon: [37.48333, 126.63333],
-      'san diego': [32.715, -117.1625],
-      'quezon city': [14.63, 121.03],
-      caracas: [10.48056, -66.90361],
-      kanpur: [26.44992, 80.33187],
-      dubai: [25.26306, 55.29722],
-      lucknow: [26.85, 80.95],
-      basra: [30.5, 47.81667],
-      chaozhou: [23.66667, 116.63333],
-      maracaibo: [10.65, -71.63333],
-      munich: [48.13333, 11.56667],
-      prague: [50.08333, 14.41667],
-      vienna: [48.2, 16.36667],
-      sapporo: [43.06667, 141.35],
-      kaohsiung: [22.63333, 120.26667],
-      taichung: [24.15, 120.66667],
-      'davao city': [7.07, 125.6],
-      ouagadougou: [12.35722, -1.53528],
-      medellín: [6.23083, -75.59056],
-      nagpur: [21.15, 79.08333],
-      daegu: [35.86667, 128.6],
-      lusaka: [-15.41667, 28.28333],
-      almaty: [43.2775, 76.89583],
-      'san antonio': [29.41667, -98.5],
-      dakar: [14.69278, -17.44667],
-      douala: [4.05, 9.68333],
-      birmingham: [52.48333, -1.9],
-      yaoundé: [3.86667, 11.51667],
-      abuja: [9.06667, 7.48333],
-      barranquilla: [10.96389, -74.79639],
-      brisbane: [-27.46667, 153.03333],
-      tripoli: [32.88722, 13.19139],
-      tashkent: [41.3, 69.26667],
-      tunis: [36.80639, 10.18167],
-      'phnom penh': [11.55, 104.91667],
-      managua: [12.13639, -86.25139],
-      lanzhou: [36.062, 103.835],
-      baoding: [38.86667, 115.46667],
-      "sana'a": [15.34833, 44.20639],
-      havana: [23.13333, -82.38333],
-      rawalpindi: [33.6, 73.03333],
-      patna: [25.6, 85.1],
-      gujranwala: [32.15667, 74.19],
-      makassar: [-5.13333, 119.41667],
-      karaj: [35.83556, 51.01028],
-      peshawar: [34.01667, 71.58333],
-      minsk: [53.9, 27.56667],
-      bucharest: [44.4325, 26.10389],
-      tijuana: [32.525, -117.03333],
-      shiraz: [29.61667, 52.53333],
-      xiamen: [24.47984, 118.08942],
-      islamabad: [33.71667, 73.06667],
-      brazzaville: [-4.26778, 15.29194],
-      maputo: [-25.96667, 32.58333],
-      bhopal: [23.25, 77.41667],
-      tabriz: [38.06667, 46.3],
-      mandalay: [21.975, 96.08333],
-      montevideo: [-34.88361, -56.18194],
-      palembang: [-2.98611, 104.75556],
-      belgrade: [44.81667, 20.46667],
-      kharkiv: [50.00444, 36.23139],
-      harare: [-17.82917, 31.05222],
-      auckland: [-36.84056, 174.74],
-      caloocan: [14.65, 120.97],
-      novosibirsk: [55.05, 82.95],
-      sofia: [42.7, 23.33],
-      kobe: [34.69, 135.19556],
-      daejeon: [36.351, 127.385],
-      cordoba: [-31.41667, -64.18333],
-      kampala: [0.31361, 32.58111],
-      kawasaki: [35.51667, 139.7],
-      tbilisi: [41.71667, 44.78333],
-      gwangju: [35.16667, 126.91667],
-      kyoto: [35.01167, 135.76833],
-      quanzhou: [24.907, 118.587],
-      yekaterinburg: [56.83333, 60.58333],
-      rosario: [-32.95, -60.66667],
-      ahvaz: [31.32028, 48.66917],
-      'nizhny novgorod': [56.32694, 44.0075],
-      saitama: [35.86139, 139.64556],
-      suwon: [37.26667, 127.01667],
-      qom: [34.64, 50.87639],
-      astana: [51.16667, 71.43333],
-      hiroshima: [34.38333, 132.45],
-      tainan: [22.98333, 120.18333],
-      ulsan: [35.55, 129.31667],
-      omsk: [54.98333, 73.36667],
-      'abu dhabi': [24.46667, 54.36667],
-      allahabad: [25.45, 81.85],
-      fez: [34.03333, -5],
-      calgary: [51.05, -114.06667],
-      yerevan: [40.18139, 44.51444],
-      cartagena: [10.4, -75.5]
+      jinan: [36.6702, 117.0207],
+      guadalajara: [20.67667, -103.3475]
     };
 
     var ontario = {
@@ -710,17 +549,86 @@ var app = (function () {
       woodstock: [43.13056, -80.74667]
     };
 
-    var manitoba = {
-      brandon: [49.84833, -99.95],
-      'flin flon': [54.76667, -101.87778],
-      'portage la prairie': [49.97278, -98.29194],
-      dauphin: [51.14944, -100.04944],
-      morden: [49.19194, -98.10056],
-      winnipeg: [49.89944, -97.13917],
-      thompson: [55.74333, -97.85528],
-      steinbach: [49.52583, -96.68389],
-      winkler: [49.18167, -97.93972],
-      selkirk: [50.14361, -96.88389]
+    var northAmerica = {
+      'mexico city': [19.43333, -99.13333],
+      'new york city': [40.661, -73.944],
+      'los angeles': [34.05, -118.25],
+      toronto: [43.74167, -79.37333],
+      chicago: [41.82192, -87.70304],
+      houston: [29.76278, -95.38306],
+      havana: [23.13667, -82.35889],
+      montreal: [45.50889, -73.56167],
+      'ecatepec de morelos': [19.60972, -99.06],
+      philadelphia: [39.95278, -75.16361],
+      'san antonio': [29.425, -98.49389],
+      guadalajara: [20.67667, -103.3475],
+      puebla: [19, -97.88333],
+      'san diego': [32.715, -117.1625],
+      dallas: [32.77917, -96.80889],
+      tijuana: [32.525, -117.03333],
+      calgary: [51.05, -114.06667],
+      tegucigalpa: [14.1, -87.21667],
+      zapopan: [20.72028, -103.39194],
+      monterrey: [25.66667, -100.3],
+      managua: [12.13639, -86.25139],
+      'santo domingo': [18.46667, -69.95],
+      'guatemala city': [14.61333, -90.53528],
+      'port-au-prince': [18.53333, -72.33333],
+      naucalpan: [19.47528, -99.23778],
+      ottawa: [45.42472, -75.695],
+      austin: [30.26722, -97.74306],
+      edmonton: [53.53444, -113.49028],
+      querétaro: [20.58333, -100.38333],
+      toluca: [19.2925, -99.65694],
+      jacksonville: [30.33694, -81.66139],
+      'san francisco': [37.7775, -122.41639],
+      indianapolis: [39.76861, -86.15806],
+      'fort worth': [32.75, -97.33333],
+      charlotte: [35.22722, -80.84306],
+      hermosillo: [29.09889, -110.95417],
+      saltillo: [25.43333, -101],
+      aguascalientes: [22.01667, -102.35],
+      mississauga: [43.6, -79.65],
+      'san luis potosí': [22.6, -100.43333],
+      veracruz: [19.43333, -96.38333],
+      'san pedro sula': [15.5, -88.03333],
+      'santiago de los caballeros': [19.45726, -70.6888],
+      culiacán: [24.80694, -107.39389],
+      winnipeg: [49.88444, -97.14639],
+      mexicali: [32.66333, -115.46778],
+      cancún: [21.16056, -86.8475],
+      acapulco: [16.86361, -99.8825],
+      tlalnepantla: [19.53667, -99.19472],
+      seattle: [47.60972, -122.33306],
+      denver: [39.73917, -104.99028],
+      'el paso': [31.75917, -106.48861],
+      chimalhuacán: [19.4375, -98.95417],
+      detroit: [42.33139, -83.04583],
+      'washington, d.c.': [38.90472, -77.01639],
+      boston: [42.35806, -71.06361],
+      tlaquepaque: [20.61667, -103.31667],
+      nashville: [36.16667, -86.78333],
+      torreón: [25.53944, -103.44861],
+      vancouver: [49.25, -123.1],
+      reynosa: [26.09222, -98.27778],
+      'oklahoma city': [35.46861, -97.52139],
+      'las vegas': [36.175, -115.13639],
+      baltimore: [39.28333, -76.61667],
+      brampton: [43.68333, -79.76667],
+      louisville: [38.22533, -85.74167],
+      morelia: [19.76833, -101.18944],
+      milwaukee: [43.05, -87.95],
+      'tuxtla gutiérrez': [16.75278, -93.11667],
+      apodaca: [25.78333, -100.18333],
+      durango: [24.93333, -104.91667],
+      albuquerque: [35.11083, -106.61],
+      'quebec city': [46.81389, -71.20806],
+      tucson: [32.22167, -110.92639],
+      'cuautitlán izcalli': [19.64611, -99.21139],
+      surrey: [51.25, -0.41667],
+      'ciudad lópez mateos': [19.56111, -99.24694],
+      tultitlán: [19.645, -99.16944],
+      fresno: [36.75, -119.76667]
     };
 
     const points = [
@@ -936,7 +844,7 @@ var app = (function () {
       {},
       cities,
       ontario,
-      manitoba,
+      northAmerica,
       countries
     );
 
@@ -73981,12 +73889,12 @@ var app = (function () {
     			path_1 = svg_element("path");
     			line = svg_element("line");
     			t = text(/*label*/ ctx[2]);
-    			add_location(line, file$4, 24, 2, 563);
+    			add_location(line, file$4, 27, 2, 627);
     			attr_dev(path_1, "d", /*d*/ ctx[3]);
     			attr_dev(path_1, "fill", /*color*/ ctx[0]);
-    			attr_dev(path_1, "stroke", "red");
-    			attr_dev(path_1, "opacity", /*opacity*/ ctx[1]);
-    			add_location(path_1, file$4, 23, 0, 514);
+    			attr_dev(path_1, "stroke", /*color*/ ctx[0]);
+    			attr_dev(path_1, "fill-opacity", /*opacity*/ ctx[1]);
+    			add_location(path_1, file$4, 26, 0, 563);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -74003,8 +73911,12 @@ var app = (function () {
     				attr_dev(path_1, "fill", /*color*/ ctx[0]);
     			}
 
+    			if (dirty & /*color*/ 1) {
+    				attr_dev(path_1, "stroke", /*color*/ ctx[0]);
+    			}
+
     			if (dirty & /*opacity*/ 2) {
-    				attr_dev(path_1, "opacity", /*opacity*/ ctx[1]);
+    				attr_dev(path_1, "fill-opacity", /*opacity*/ ctx[1]);
     			}
     		},
     		i: noop,
@@ -74027,7 +73939,7 @@ var app = (function () {
 
     function instance$4($$self, $$props, $$invalidate) {
     	let { at = "" } = $$props;
-    	let { radius = 4 } = $$props;
+    	let { radius = 2 } = $$props;
     	let { opacity = 0.5 } = $$props;
     	let { color = "blue" } = $$props;
     	let { label = "" } = $$props;
@@ -74035,7 +73947,8 @@ var app = (function () {
     	let projection = getContext("projection");
     	var path = index().projection(projection);
     	at = findPoint(at);
-    	let circle$1 = circle().radius(15);
+    	at = at.reverse();
+    	let circle$1 = circle().radius(radius).center(at);
     	let d = path(circle$1(at));
     	const writable_props = ["at", "radius", "opacity", "color", "label"];
 
@@ -74150,23 +74063,345 @@ var app = (function () {
     	}
     }
 
-    /* examples/geo/Globe.svelte generated by Svelte v3.22.2 */
-    const file$5 = "examples/geo/Globe.svelte";
+    /* src/Latitude.svelte generated by Svelte v3.22.2 */
+    const file$5 = "src/Latitude.svelte";
 
-    // (10:2) <Globe rotate={0} tilt={40}>
+    function create_fragment$5(ctx) {
+    	let path;
+    	let line;
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			path = svg_element("path");
+    			line = svg_element("line");
+    			t = text(/*label*/ ctx[1]);
+    			add_location(line, file$5, 30, 2, 682);
+    			attr_dev(path, "d", /*d*/ ctx[2]);
+    			attr_dev(path, "fill", "none");
+    			attr_dev(path, "stroke", /*color*/ ctx[0]);
+    			add_location(path, file$5, 29, 0, 642);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, path, anchor);
+    			append_dev(path, line);
+    			append_dev(line, t);
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*label*/ 2) set_data_dev(t, /*label*/ ctx[1]);
+
+    			if (dirty & /*color*/ 1) {
+    				attr_dev(path, "stroke", /*color*/ ctx[0]);
+    			}
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(path);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$5.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance$5($$self, $$props, $$invalidate) {
+    	let { at = 0 } = $$props;
+    	let { color = "blue" } = $$props;
+    	let { label = "" } = $$props;
+    	color = spencerColor.colors[color] || color;
+    	let projection = getContext("projection");
+    	const toPath = index().projection(projection);
+    	let arr = [];
+
+    	for (let lat = -180; lat <= 180; lat += 10) {
+    		arr.push([lat, at]); //create a ton of small line-segments
+    	}
+
+    	let geoJSON = {
+    		type: "Feature",
+    		geometry: { type: "LineString", coordinates: arr }
+    	};
+
+    	let d = toPath(geoJSON);
+    	const writable_props = ["at", "color", "label"];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Latitude> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+    	validate_slots("Latitude", $$slots, []);
+
+    	$$self.$set = $$props => {
+    		if ("at" in $$props) $$invalidate(3, at = $$props.at);
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    		if ("label" in $$props) $$invalidate(1, label = $$props.label);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		findPoint,
+    		d3Geo,
+    		getContext,
+    		c: spencerColor,
+    		at,
+    		color,
+    		label,
+    		projection,
+    		toPath,
+    		arr,
+    		geoJSON,
+    		d
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ("at" in $$props) $$invalidate(3, at = $$props.at);
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    		if ("label" in $$props) $$invalidate(1, label = $$props.label);
+    		if ("projection" in $$props) projection = $$props.projection;
+    		if ("arr" in $$props) arr = $$props.arr;
+    		if ("geoJSON" in $$props) geoJSON = $$props.geoJSON;
+    		if ("d" in $$props) $$invalidate(2, d = $$props.d);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [color, label, d, at];
+    }
+
+    class Latitude extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$5, create_fragment$5, safe_not_equal, { at: 3, color: 0, label: 1 });
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "Latitude",
+    			options,
+    			id: create_fragment$5.name
+    		});
+    	}
+
+    	get at() {
+    		throw new Error("<Latitude>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set at(value) {
+    		throw new Error("<Latitude>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get color() {
+    		throw new Error("<Latitude>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<Latitude>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get label() {
+    		throw new Error("<Latitude>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set label(value) {
+    		throw new Error("<Latitude>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/Longitude.svelte generated by Svelte v3.22.2 */
+    const file$6 = "src/Longitude.svelte";
+
+    function create_fragment$6(ctx) {
+    	let path;
+    	let line;
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			path = svg_element("path");
+    			line = svg_element("line");
+    			t = text(/*label*/ ctx[1]);
+    			add_location(line, file$6, 30, 2, 682);
+    			attr_dev(path, "d", /*d*/ ctx[2]);
+    			attr_dev(path, "fill", "none");
+    			attr_dev(path, "stroke", /*color*/ ctx[0]);
+    			add_location(path, file$6, 29, 0, 642);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, path, anchor);
+    			append_dev(path, line);
+    			append_dev(line, t);
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*label*/ 2) set_data_dev(t, /*label*/ ctx[1]);
+
+    			if (dirty & /*color*/ 1) {
+    				attr_dev(path, "stroke", /*color*/ ctx[0]);
+    			}
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(path);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$6.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance$6($$self, $$props, $$invalidate) {
+    	let { at = 0 } = $$props;
+    	let { color = "blue" } = $$props;
+    	let { label = "" } = $$props;
+    	color = spencerColor.colors[color] || color;
+    	let projection = getContext("projection");
+    	const toPath = index().projection(projection);
+    	let arr = [];
+
+    	for (let lon = -180; lon <= 180; lon += 10) {
+    		arr.push([at, lon]); //create a ton of small line-segments
+    	}
+
+    	let geoJSON = {
+    		type: "Feature",
+    		geometry: { type: "LineString", coordinates: arr }
+    	};
+
+    	let d = toPath(geoJSON);
+    	const writable_props = ["at", "color", "label"];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Longitude> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+    	validate_slots("Longitude", $$slots, []);
+
+    	$$self.$set = $$props => {
+    		if ("at" in $$props) $$invalidate(3, at = $$props.at);
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    		if ("label" in $$props) $$invalidate(1, label = $$props.label);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		findPoint,
+    		d3Geo,
+    		getContext,
+    		c: spencerColor,
+    		at,
+    		color,
+    		label,
+    		projection,
+    		toPath,
+    		arr,
+    		geoJSON,
+    		d
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ("at" in $$props) $$invalidate(3, at = $$props.at);
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    		if ("label" in $$props) $$invalidate(1, label = $$props.label);
+    		if ("projection" in $$props) projection = $$props.projection;
+    		if ("arr" in $$props) arr = $$props.arr;
+    		if ("geoJSON" in $$props) geoJSON = $$props.geoJSON;
+    		if ("d" in $$props) $$invalidate(2, d = $$props.d);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [color, label, d, at];
+    }
+
+    class Longitude extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$6, create_fragment$6, safe_not_equal, { at: 3, color: 0, label: 1 });
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "Longitude",
+    			options,
+    			id: create_fragment$6.name
+    		});
+    	}
+
+    	get at() {
+    		throw new Error("<Longitude>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set at(value) {
+    		throw new Error("<Longitude>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get color() {
+    		throw new Error("<Longitude>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<Longitude>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get label() {
+    		throw new Error("<Longitude>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set label(value) {
+    		throw new Error("<Longitude>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* examples/geo/Globe.svelte generated by Svelte v3.22.2 */
+    const file$7 = "examples/geo/Globe.svelte";
+
+    // (10:2) <Globe rotate={90} tilt={-10}>
     function create_default_slot(ctx) {
     	let t0;
     	let t1;
+    	let t2;
     	let current;
     	const graticule = new Graticule({ $$inline: true });
+    	const latitude = new Latitude({ props: { at: 40 }, $$inline: true });
 
-    	const line = new Line({
-    			props: { from: "toronto", to: "jamaica" },
+    	const dot0 = new Dot({
+    			props: {
+    				at: [90, 0],
+    				color: "lightblue",
+    				radius: 50
+    			},
     			$$inline: true
     		});
 
-    	const dot = new Dot({
-    			props: { at: "vancouver", color: "red" },
+    	const dot1 = new Dot({
+    			props: {
+    				at: [-90, 0],
+    				color: "lightblue",
+    				radius: 50
+    			},
     			$$inline: true
     		});
 
@@ -74174,38 +74409,46 @@ var app = (function () {
     		c: function create() {
     			create_component(graticule.$$.fragment);
     			t0 = space();
-    			create_component(line.$$.fragment);
+    			create_component(latitude.$$.fragment);
     			t1 = space();
-    			create_component(dot.$$.fragment);
+    			create_component(dot0.$$.fragment);
+    			t2 = space();
+    			create_component(dot1.$$.fragment);
     		},
     		m: function mount(target, anchor) {
     			mount_component(graticule, target, anchor);
     			insert_dev(target, t0, anchor);
-    			mount_component(line, target, anchor);
+    			mount_component(latitude, target, anchor);
     			insert_dev(target, t1, anchor);
-    			mount_component(dot, target, anchor);
+    			mount_component(dot0, target, anchor);
+    			insert_dev(target, t2, anchor);
+    			mount_component(dot1, target, anchor);
     			current = true;
     		},
     		p: noop,
     		i: function intro(local) {
     			if (current) return;
     			transition_in(graticule.$$.fragment, local);
-    			transition_in(line.$$.fragment, local);
-    			transition_in(dot.$$.fragment, local);
+    			transition_in(latitude.$$.fragment, local);
+    			transition_in(dot0.$$.fragment, local);
+    			transition_in(dot1.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
     			transition_out(graticule.$$.fragment, local);
-    			transition_out(line.$$.fragment, local);
-    			transition_out(dot.$$.fragment, local);
+    			transition_out(latitude.$$.fragment, local);
+    			transition_out(dot0.$$.fragment, local);
+    			transition_out(dot1.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			destroy_component(graticule, detaching);
     			if (detaching) detach_dev(t0);
-    			destroy_component(line, detaching);
+    			destroy_component(latitude, detaching);
     			if (detaching) detach_dev(t1);
-    			destroy_component(dot, detaching);
+    			destroy_component(dot0, detaching);
+    			if (detaching) detach_dev(t2);
+    			destroy_component(dot1, detaching);
     		}
     	};
 
@@ -74213,21 +74456,21 @@ var app = (function () {
     		block,
     		id: create_default_slot.name,
     		type: "slot",
-    		source: "(10:2) <Globe rotate={0} tilt={40}>",
+    		source: "(10:2) <Globe rotate={90} tilt={-10}>",
     		ctx
     	});
 
     	return block;
     }
 
-    function create_fragment$5(ctx) {
+    function create_fragment$7(ctx) {
     	let div;
     	let current;
 
     	const globe = new Globe({
     			props: {
-    				rotate: 0,
-    				tilt: 40,
+    				rotate: 90,
+    				tilt: -10,
     				$$slots: { default: [create_default_slot] },
     				$$scope: { ctx }
     			},
@@ -74238,7 +74481,7 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			create_component(globe.$$.fragment);
-    			add_location(div, file$5, 8, 0, 97);
+    			add_location(div, file$7, 8, 0, 118);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -74274,7 +74517,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$5.name,
+    		id: create_fragment$7.name,
     		type: "component",
     		source: "",
     		ctx
@@ -74283,7 +74526,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$5($$self, $$props, $$invalidate) {
+    function instance$7($$self, $$props, $$invalidate) {
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
@@ -74292,20 +74535,29 @@ var app = (function () {
 
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Globe", $$slots, []);
-    	$$self.$capture_state = () => ({ Globe, Line, Graticule, Dot });
+
+    	$$self.$capture_state = () => ({
+    		Globe,
+    		Line,
+    		Graticule,
+    		Dot,
+    		Latitude,
+    		Longitude
+    	});
+
     	return [];
     }
 
     class Globe_1 extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$5, create_fragment$5, safe_not_equal, {});
+    		init(this, options, instance$7, create_fragment$7, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Globe_1",
     			options,
-    			id: create_fragment$5.name
+    			id: create_fragment$7.name
     		});
     	}
     }

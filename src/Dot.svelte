@@ -4,7 +4,7 @@
   import { getContext } from 'svelte'
   import c from 'spencer-color'
   export let at = ''
-  export let radius = 4
+  export let radius = 2
   export let opacity = 0.5
   export let color = 'blue'
   export let label = ''
@@ -15,12 +15,15 @@
   var path = d3Geo.geoPath().projection(projection)
 
   at = findPoint(at)
+  at = at.reverse()
 
-  let circle = d3Geo.geoCircle().radius(15)
-
+  let circle = d3Geo
+    .geoCircle()
+    .radius(radius)
+    .center(at)
   let d = path(circle(at))
 </script>
 
-<path {d} fill={color} stroke="red" {opacity}>
+<path {d} fill={color} stroke={color} fill-opacity={opacity}>
   <line>{label}</line>
 </path>
