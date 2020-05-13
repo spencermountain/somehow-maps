@@ -4,6 +4,7 @@ var app = (function () {
     'use strict';
 
     function noop() { }
+    const identity = x => x;
     function assign(tar, src) {
         // @ts-ignore
         for (const k in src)
@@ -29,6 +30,21 @@ var app = (function () {
     }
     function safe_not_equal(a, b) {
         return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
+    }
+    function validate_store(store, name) {
+        if (store != null && typeof store.subscribe !== 'function') {
+            throw new Error(`'${name}' is not a store with a 'subscribe' method`);
+        }
+    }
+    function subscribe(store, ...callbacks) {
+        if (store == null) {
+            return noop;
+        }
+        const unsub = store.subscribe(...callbacks);
+        return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+    }
+    function component_subscribe(component, store, callback) {
+        component.$$.on_destroy.push(subscribe(store, callback));
     }
     function create_slot(definition, ctx, $$scope, fn) {
         if (definition) {
@@ -58,6 +74,41 @@ var app = (function () {
             return $$scope.dirty | lets;
         }
         return $$scope.dirty;
+    }
+
+    const is_client = typeof window !== 'undefined';
+    let now = is_client
+        ? () => window.performance.now()
+        : () => Date.now();
+    let raf = is_client ? cb => requestAnimationFrame(cb) : noop;
+
+    const tasks = new Set();
+    function run_tasks(now) {
+        tasks.forEach(task => {
+            if (!task.c(now)) {
+                tasks.delete(task);
+                task.f();
+            }
+        });
+        if (tasks.size !== 0)
+            raf(run_tasks);
+    }
+    /**
+     * Creates a new task that runs on each raf frame
+     * until it returns a falsy value or is aborted
+     */
+    function loop(callback) {
+        let task;
+        if (tasks.size === 0)
+            raf(run_tasks);
+        return {
+            promise: new Promise(fulfill => {
+                tasks.add(task = { c: callback, f: fulfill });
+            }),
+            abort() {
+                tasks.delete(task);
+            }
+        };
     }
 
     function append(target, node) {
@@ -406,6 +457,158 @@ var app = (function () {
         }
         $capture_state() { }
         $inject_state() { }
+    }
+
+    const subscriber_queue = [];
+    /**
+     * Create a `Writable` store that allows both updating and reading by subscription.
+     * @param {*=}value initial value
+     * @param {StartStopNotifier=}start start and stop notifications for subscriptions
+     */
+    function writable(value, start = noop) {
+        let stop;
+        const subscribers = [];
+        function set(new_value) {
+            if (safe_not_equal(value, new_value)) {
+                value = new_value;
+                if (stop) { // store is ready
+                    const run_queue = !subscriber_queue.length;
+                    for (let i = 0; i < subscribers.length; i += 1) {
+                        const s = subscribers[i];
+                        s[1]();
+                        subscriber_queue.push(s, value);
+                    }
+                    if (run_queue) {
+                        for (let i = 0; i < subscriber_queue.length; i += 2) {
+                            subscriber_queue[i][0](subscriber_queue[i + 1]);
+                        }
+                        subscriber_queue.length = 0;
+                    }
+                }
+            }
+        }
+        function update(fn) {
+            set(fn(value));
+        }
+        function subscribe(run, invalidate = noop) {
+            const subscriber = [run, invalidate];
+            subscribers.push(subscriber);
+            if (subscribers.length === 1) {
+                stop = start(set) || noop;
+            }
+            run(value);
+            return () => {
+                const index = subscribers.indexOf(subscriber);
+                if (index !== -1) {
+                    subscribers.splice(index, 1);
+                }
+                if (subscribers.length === 0) {
+                    stop();
+                    stop = null;
+                }
+            };
+        }
+        return { set, update, subscribe };
+    }
+
+    function cubicOut(t) {
+        const f = t - 1.0;
+        return f * f * f + 1.0;
+    }
+
+    function is_date(obj) {
+        return Object.prototype.toString.call(obj) === '[object Date]';
+    }
+
+    function get_interpolator(a, b) {
+        if (a === b || a !== a)
+            return () => a;
+        const type = typeof a;
+        if (type !== typeof b || Array.isArray(a) !== Array.isArray(b)) {
+            throw new Error('Cannot interpolate values of different type');
+        }
+        if (Array.isArray(a)) {
+            const arr = b.map((bi, i) => {
+                return get_interpolator(a[i], bi);
+            });
+            return t => arr.map(fn => fn(t));
+        }
+        if (type === 'object') {
+            if (!a || !b)
+                throw new Error('Object cannot be null');
+            if (is_date(a) && is_date(b)) {
+                a = a.getTime();
+                b = b.getTime();
+                const delta = b - a;
+                return t => new Date(a + t * delta);
+            }
+            const keys = Object.keys(b);
+            const interpolators = {};
+            keys.forEach(key => {
+                interpolators[key] = get_interpolator(a[key], b[key]);
+            });
+            return t => {
+                const result = {};
+                keys.forEach(key => {
+                    result[key] = interpolators[key](t);
+                });
+                return result;
+            };
+        }
+        if (type === 'number') {
+            const delta = b - a;
+            return t => a + t * delta;
+        }
+        throw new Error(`Cannot interpolate ${type} values`);
+    }
+    function tweened(value, defaults = {}) {
+        const store = writable(value);
+        let task;
+        let target_value = value;
+        function set(new_value, opts) {
+            if (value == null) {
+                store.set(value = new_value);
+                return Promise.resolve();
+            }
+            target_value = new_value;
+            let previous_task = task;
+            let started = false;
+            let { delay = 0, duration = 400, easing = identity, interpolate = get_interpolator } = assign(assign({}, defaults), opts);
+            if (duration === 0) {
+                store.set(target_value);
+                return Promise.resolve();
+            }
+            const start = now() + delay;
+            let fn;
+            task = loop(now => {
+                if (now < start)
+                    return true;
+                if (!started) {
+                    fn = interpolate(value, new_value);
+                    if (typeof duration === 'function')
+                        duration = duration(value, new_value);
+                    started = true;
+                }
+                if (previous_task) {
+                    previous_task.abort();
+                    previous_task = null;
+                }
+                const elapsed = now - start;
+                if (elapsed > duration) {
+                    store.set(value = new_value);
+                    return false;
+                }
+                // @ts-ignore
+                store.set(value = fn(easing(elapsed / duration)));
+                return true;
+            });
+            return task.promise;
+        }
+        return {
+            set,
+            update: (fn, opts) => set(fn(target_value, value), opts),
+            subscribe: store.subscribe
+        };
     }
 
     //  latitude / longitude
@@ -2779,7 +2982,7 @@ var app = (function () {
       return interpolate;
     }
 
-    function identity(x) {
+    function identity$1(x) {
       return x;
     }
 
@@ -3127,7 +3330,7 @@ var app = (function () {
       };
 
       path.projection = function(_) {
-        return arguments.length ? (projectionStream = _ == null ? (projection = null, identity) : (projection = _).stream, path) : projection;
+        return arguments.length ? (projectionStream = _ == null ? (projection = null, identity$1) : (projection = _).stream, path) : projection;
       };
 
       path.context = function(_) {
@@ -3372,7 +3575,7 @@ var app = (function () {
           deltaLambda = 0, deltaPhi = 0, deltaGamma = 0, rotate, // pre-rotate
           alpha = 0, // post-rotate
           theta = null, preclip = clipAntimeridian, // pre-clip angle
-          x0 = null, y0, x1, y1, postclip = identity, // post-clip extent
+          x0 = null, y0, x1, y1, postclip = identity$1, // post-clip extent
           delta2 = 0.5, // precision
           projectResample,
           projectTransform,
@@ -3406,7 +3609,7 @@ var app = (function () {
       };
 
       projection.clipExtent = function(_) {
-        return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity) : clipRectangle(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+        return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$1) : clipRectangle(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
       };
 
       projection.scale = function(_) {
@@ -3860,17 +4063,17 @@ var app = (function () {
     }
 
     function scaleTranslate$1(kx, ky, tx, ty) {
-      return kx === 1 && ky === 1 && tx === 0 && ty === 0 ? identity : transformer({
+      return kx === 1 && ky === 1 && tx === 0 && ty === 0 ? identity$1 : transformer({
         point: function(x, y) {
           this.stream.point(x * kx + tx, y * ky + ty);
         }
       });
     }
 
-    function identity$1() {
-      var k = 1, tx = 0, ty = 0, sx = 1, sy = 1, transform = identity, // scale, translate and reflect
+    function identity$2() {
+      var k = 1, tx = 0, ty = 0, sx = 1, sy = 1, transform = identity$1, // scale, translate and reflect
           x0 = null, y0, x1, y1, // clip extent
-          postclip = identity,
+          postclip = identity$1,
           cache,
           cacheStream,
           projection;
@@ -3888,7 +4091,7 @@ var app = (function () {
           return arguments.length ? (postclip = _, x0 = y0 = x1 = y1 = null, reset()) : postclip;
         },
         clipExtent: function(_) {
-          return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity) : clipRectangle(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+          return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity$1) : clipRectangle(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
         },
         scale: function(_) {
           return arguments.length ? (transform = scaleTranslate$1((k = +_) * sx, k * sy, tx, ty), reset()) : k;
@@ -4030,7 +4233,7 @@ var app = (function () {
         geoEquirectangularRaw: equirectangularRaw,
         geoGnomonic: gnomonic,
         geoGnomonicRaw: gnomonicRaw,
-        geoIdentity: identity$1,
+        geoIdentity: identity$2,
         geoProjection: projection,
         geoProjectionMutator: projectionMutator,
         geoMercator: mercator,
@@ -4210,12 +4413,12 @@ var app = (function () {
     	}
     }
 
-    function identity$2(x) {
+    function identity$3(x) {
       return x;
     }
 
     function transform$1(transform) {
-      if (transform == null) return identity$2;
+      if (transform == null) return identity$3;
       var x0,
           y0,
           kx = transform.scale[0],
@@ -4621,7 +4824,7 @@ var app = (function () {
     }
 
     function untransform(transform) {
-      if (transform == null) return identity$2;
+      if (transform == null) return identity$3;
       var x0,
           y0,
           kx = transform.scale[0],
@@ -73378,7 +73581,7 @@ var app = (function () {
     /* src/Globe.svelte generated by Svelte v3.22.2 */
     const file$2 = "src/Globe.svelte";
 
-    // (34:2) {#if showCountries}
+    // (35:2) {#if showCountries}
     function create_if_block(ctx) {
     	let current;
 
@@ -73414,7 +73617,7 @@ var app = (function () {
     		block,
     		id: create_if_block.name,
     		type: "if",
-    		source: "(34:2) {#if showCountries}",
+    		source: "(35:2) {#if showCountries}",
     		ctx
     	});
 
@@ -73440,7 +73643,7 @@ var app = (function () {
     			attr_dev(svg, "preserveAspectRatio", "xMidYMid meet");
     			set_style(svg, "margin", "10px 20px 25px 25px");
     			attr_dev(svg, "class", "svelte-ip4obd");
-    			add_location(svg, file$2, 29, 0, 672);
+    			add_location(svg, file$2, 30, 0, 709);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -73525,17 +73728,20 @@ var app = (function () {
     	let { width = 500 } = $$props;
     	let { height = 500 } = $$props;
     	let { showCountries = true } = $$props;
-    	let { globe = true } = $$props;
-    	let projection = orthographic().scale(180);
-    	projection.rotate([rotate, tilt, 3]);
-    	projection.translate([200, 200]);
+    	let { flat = false } = $$props;
 
-    	if (globe === false) {
+    	// import { rotate, tilt } from './stores.js'
+    	let projection = orthographic().scale(180);
+
+    	projection.rotate([rotate, tilt, 3]);
+
+    	if (flat) {
     		projection = mercator().scale(75);
     	}
 
+    	projection.translate([200, 200]);
     	setContext("projection", projection);
-    	const writable_props = ["rotate", "tilt", "width", "height", "showCountries", "globe"];
+    	const writable_props = ["rotate", "tilt", "width", "height", "showCountries", "flat"];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Globe> was created with unknown prop '${key}'`);
@@ -73550,7 +73756,7 @@ var app = (function () {
     		if ("width" in $$props) $$invalidate(0, width = $$props.width);
     		if ("height" in $$props) $$invalidate(1, height = $$props.height);
     		if ("showCountries" in $$props) $$invalidate(2, showCountries = $$props.showCountries);
-    		if ("globe" in $$props) $$invalidate(5, globe = $$props.globe);
+    		if ("flat" in $$props) $$invalidate(5, flat = $$props.flat);
     		if ("$$scope" in $$props) $$invalidate(7, $$scope = $$props.$$scope);
     	};
 
@@ -73564,7 +73770,7 @@ var app = (function () {
     		width,
     		height,
     		showCountries,
-    		globe,
+    		flat,
     		projection
     	});
 
@@ -73574,7 +73780,7 @@ var app = (function () {
     		if ("width" in $$props) $$invalidate(0, width = $$props.width);
     		if ("height" in $$props) $$invalidate(1, height = $$props.height);
     		if ("showCountries" in $$props) $$invalidate(2, showCountries = $$props.showCountries);
-    		if ("globe" in $$props) $$invalidate(5, globe = $$props.globe);
+    		if ("flat" in $$props) $$invalidate(5, flat = $$props.flat);
     		if ("projection" in $$props) projection = $$props.projection;
     	};
 
@@ -73582,17 +73788,7 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [
-    		width,
-    		height,
-    		showCountries,
-    		rotate,
-    		tilt,
-    		globe,
-    		projection,
-    		$$scope,
-    		$$slots
-    	];
+    	return [width, height, showCountries, rotate, tilt, flat, projection, $$scope, $$slots];
     }
 
     class Globe extends SvelteComponentDev {
@@ -73605,7 +73801,7 @@ var app = (function () {
     			width: 0,
     			height: 1,
     			showCountries: 2,
-    			globe: 5
+    			flat: 5
     		});
 
     		dispatch_dev("SvelteRegisterComponent", {
@@ -73656,11 +73852,11 @@ var app = (function () {
     		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
-    	get globe() {
+    	get flat() {
     		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
-    	set globe(value) {
+    	set flat(value) {
     		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
     }
@@ -74378,7 +74574,7 @@ var app = (function () {
     /* examples/geo/Globe.svelte generated by Svelte v3.22.2 */
     const file$7 = "examples/geo/Globe.svelte";
 
-    // (10:2) <Globe rotate={90} tilt={-10}>
+    // (17:2) <Globe rotate={$r} tilt={-10}>
     function create_default_slot(ctx) {
     	let t0;
     	let t1;
@@ -74456,7 +74652,7 @@ var app = (function () {
     		block,
     		id: create_default_slot.name,
     		type: "slot",
-    		source: "(10:2) <Globe rotate={90} tilt={-10}>",
+    		source: "(17:2) <Globe rotate={$r} tilt={-10}>",
     		ctx
     	});
 
@@ -74469,7 +74665,7 @@ var app = (function () {
 
     	const globe = new Globe({
     			props: {
-    				rotate: 90,
+    				rotate: /*$r*/ ctx[0],
     				tilt: -10,
     				$$slots: { default: [create_default_slot] },
     				$$scope: { ctx }
@@ -74481,7 +74677,7 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			create_component(globe.$$.fragment);
-    			add_location(div, file$7, 8, 0, 118);
+    			add_location(div, file$7, 15, 0, 287);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -74493,8 +74689,9 @@ var app = (function () {
     		},
     		p: function update(ctx, [dirty]) {
     			const globe_changes = {};
+    			if (dirty & /*$r*/ 1) globe_changes.rotate = /*$r*/ ctx[0];
 
-    			if (dirty & /*$$scope*/ 1) {
+    			if (dirty & /*$$scope*/ 4) {
     				globe_changes.$$scope = { dirty, ctx };
     			}
 
@@ -74527,6 +74724,11 @@ var app = (function () {
     }
 
     function instance$7($$self, $$props, $$invalidate) {
+    	let $r;
+    	const r = tweened(0, { duration: 1400, easing: cubicOut });
+    	validate_store(r, "r");
+    	component_subscribe($$self, r, value => $$invalidate(0, $r = value));
+    	r.set(180);
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
@@ -74537,15 +74739,19 @@ var app = (function () {
     	validate_slots("Globe", $$slots, []);
 
     	$$self.$capture_state = () => ({
+    		tweened,
+    		cubicOut,
     		Globe,
     		Line,
     		Graticule,
     		Dot,
     		Latitude,
-    		Longitude
+    		Longitude,
+    		r,
+    		$r
     	});
 
-    	return [];
+    	return [$r, r];
     }
 
     class Globe_1 extends SvelteComponentDev {

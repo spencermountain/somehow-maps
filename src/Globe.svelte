@@ -8,15 +8,16 @@
   export let width = 500
   export let height = 500
   export let showCountries = true
-  export let globe = true
+  export let flat = false
 
+  // import { rotate, tilt } from './stores.js'
   let projection = d3Geo.geoOrthographic().scale(180)
   projection.rotate([rotate, tilt, 3])
-  projection.translate([200, 200])
 
-  if (globe === false) {
+  if (flat) {
     projection = d3Geo.geoMercator().scale(75)
   }
+  projection.translate([200, 200])
   setContext('projection', projection)
 </script>
 
