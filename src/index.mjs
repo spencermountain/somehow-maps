@@ -1,4 +1,5 @@
 export { default as Globe } from './Globe.svelte'
+export { default as Map } from './Map.svelte'
 
 export { default as Line } from './shapes/Line.svelte'
 export { default as Graticule } from './shapes/Graticule.svelte'

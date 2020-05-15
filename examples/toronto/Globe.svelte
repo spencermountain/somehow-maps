@@ -1,8 +1,11 @@
 <script>
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
-  import { Globe, Countries, Line, Dot, Shape } from '../../src'
+  import { Map, Globe, Countries, Line, Dot, Shape } from '../../src'
   import roads from './roads'
+
+  // import countries from '../../src/data/more.geo.json'
+  // let focus = countries.features[3]
 </script>
 
 <style>
@@ -10,9 +13,8 @@
 </style>
 
 <div>
-  <Globe tilt={0} flat="true">
+  <Map focus={roads}>
     <Countries />
-    <!-- <Latitude at={40} /> -->
-    <!-- <Shape shape={roads} color="blue" /> -->
-  </Globe>
+    <Shape shape={roads} color="blue" />
+  </Map>
 </div>
