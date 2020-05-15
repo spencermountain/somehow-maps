@@ -17,6 +17,7 @@
   // let geoJSON = topojson.feature(shape, shape.objects[key])
   // console.log(geoJSON)
   let d = toPath(shape)
+  // console.log(d)
 </script>
 
 <path {d} {fill} {stroke} shape-rendering="geometricPrecision" />
