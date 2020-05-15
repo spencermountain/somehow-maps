@@ -3,7 +3,7 @@
   import * as d3Geo from 'd3-geo'
   import * as topojson from 'topojson-client'
   import c from 'spencer-color'
-  export let data = ''
+  export let shape = ''
   export let stroke = 'lightgrey'
   export let fill = 'white'
   fill = c.colors[fill] || fill
@@ -12,9 +12,11 @@
   let projection = getContext('projection')
   const toPath = d3Geo.geoPath().projection(projection)
 
-  let key = Object.keys(data.objects)[0]
-  let geoJSON = topojson.feature(data, data.objects[key])
-  let d = toPath(geoJSON)
+  // console.log(shape)
+  // let key = Object.keys(shape.objects)[0]
+  // let geoJSON = topojson.feature(shape, shape.objects[key])
+  // console.log(geoJSON)
+  let d = toPath(shape)
 </script>
 
 <path {d} {fill} {stroke} shape-rendering="geometricPrecision" />

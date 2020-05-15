@@ -1,5 +1,5 @@
 <script>
-  import findPoint from './findPoint'
+  import findPoint from '../lib/findPoint'
   import { getContext } from 'svelte'
   import * as d3Geo from 'd3-geo'
   import c from 'spencer-color'

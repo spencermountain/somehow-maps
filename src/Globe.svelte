@@ -1,23 +1,30 @@
 <script>
   import { setContext } from 'svelte'
-  import Shape from './Shape.svelte'
+  import Shape from './shapes/Shape.svelte'
   import * as d3Geo from 'd3-geo'
-  import countries from './shapes/countries'
+
+  import findPoint from './lib/findPoint'
   export let rotate = 0
   export let tilt = 0
   export let width = 500
+  export let zoom = 75
   export let height = 500
-  export let showCountries = true
   export let flat = false
-
-  // import { rotate, tilt } from './stores.js'
+  export let show = ''
+  show = findPoint(show) || show || [0, 0]
   let projection = d3Geo.geoOrthographic().scale(180)
-  projection.rotate([rotate, tilt, 3])
 
   if (flat) {
-    projection = d3Geo.geoMercator().scale(75)
+    projection = d3Geo.geoMercator().scale(zoom)
+    projection.center(show)
+    console.log(show)
   }
-  projection.translate([200, 200])
+  if (rotate || tilt) {
+    projection.rotate([rotate, tilt, 3])
+  }
+
+  projection.translate([width / 2, height / 2])
+  // projection.translate([200, 200])
   setContext('projection', projection)
 </script>
 
@@ -32,8 +39,5 @@
   viewBox="0,0,{width},{height}"
   preserveAspectRatio="xMidYMid meet"
   style="margin: 10px 20px 25px 25px;">
-  {#if showCountries}
-    <Shape data={countries} />
-  {/if}
   <slot />
 </svg>
