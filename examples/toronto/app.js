@@ -1,6 +1,6 @@
-import Globe from './Globe.svelte'
+import Main from './Main.svelte'
 
-const app = new Globe({
+const app = new Main({
   target: document.body
 })
 

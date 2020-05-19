@@ -31,6 +31,21 @@ var app = (function () {
     function safe_not_equal(a, b) {
         return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
     }
+    function validate_store(store, name) {
+        if (store != null && typeof store.subscribe !== 'function') {
+            throw new Error(`'${name}' is not a store with a 'subscribe' method`);
+        }
+    }
+    function subscribe(store, ...callbacks) {
+        if (store == null) {
+            return noop;
+        }
+        const unsub = store.subscribe(...callbacks);
+        return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+    }
+    function component_subscribe(component, store, callback) {
+        component.$$.on_destroy.push(subscribe(store, callback));
+    }
     function create_slot(definition, ctx, $$scope, fn) {
         if (definition) {
             const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
@@ -122,6 +137,13 @@ var app = (function () {
     }
     function space() {
         return text(' ');
+    }
+    function empty() {
+        return text('');
+    }
+    function listen(node, event, handler, options) {
+        node.addEventListener(event, handler, options);
+        return () => node.removeEventListener(event, handler, options);
     }
     function attr(node, attribute, value) {
         if (value == null)
@@ -221,6 +243,19 @@ var app = (function () {
     }
     const outroing = new Set();
     let outros;
+    function group_outros() {
+        outros = {
+            r: 0,
+            c: [],
+            p: outros // parent group
+        };
+    }
+    function check_outros() {
+        if (!outros.r) {
+            run_all(outros.c);
+        }
+        outros = outros.p;
+    }
     function transition_in(block, local) {
         if (block && block.i) {
             outroing.delete(block);
@@ -380,6 +415,19 @@ var app = (function () {
     function detach_dev(node) {
         dispatch_dev("SvelteDOMRemove", { node });
         detach(node);
+    }
+    function listen_dev(node, event, handler, options, has_prevent_default, has_stop_propagation) {
+        const modifiers = options === true ? ["capture"] : options ? Array.from(Object.keys(options)) : [];
+        if (has_prevent_default)
+            modifiers.push('preventDefault');
+        if (has_stop_propagation)
+            modifiers.push('stopPropagation');
+        dispatch_dev("SvelteDOMAddEventListener", { node, event, handler, modifiers });
+        const dispose = listen(node, event, handler, options);
+        return () => {
+            dispatch_dev("SvelteDOMRemoveEventListener", { node, event, handler, modifiers });
+            dispose();
+        };
     }
     function attr_dev(node, attribute, value) {
         attr(node, attribute, value);
@@ -4283,10 +4331,209 @@ var app = (function () {
     !function(e){module.exports=e();}(function(){return function u(i,a,c){function f(r,e){if(!a[r]){if(!i[r]){var o="function"==typeof commonjsRequire&&commonjsRequire;if(!e&&o)return o(r,!0);if(d)return d(r,!0);var n=new Error("Cannot find module '"+r+"'");throw n.code="MODULE_NOT_FOUND",n}var t=a[r]={exports:{}};i[r][0].call(t.exports,function(e){return f(i[r][1][e]||e)},t,t.exports,u,i,a,c);}return a[r].exports}for(var d="function"==typeof commonjsRequire&&commonjsRequire,e=0;e<c.length;e++)f(c[e]);return f}({1:[function(e,r,o){r.exports={blue:"#6699cc",green:"#6accb2",yellow:"#e1e6b3",red:"#cc7066",pink:"#F2C0BB",brown:"#705E5C",orange:"#cc8a66",purple:"#d8b3e6",navy:"#335799",olive:"#7f9c6c",fuscia:"#735873",beige:"#e6d7b3",slate:"#8C8C88",suede:"#9c896c",burnt:"#603a39",sea:"#50617A",sky:"#2D85A8",night:"#303b50",rouge:"#914045",grey:"#838B91",mud:"#C4ABAB",royal:"#275291",cherry:"#cc6966",tulip:"#e6b3bc",rose:"#D68881",fire:"#AB5850",greyblue:"#72697D",greygreen:"#8BA3A2",greypurple:"#978BA3",burn:"#6D5685",slategrey:"#bfb0b3",light:"#a3a5a5",lighter:"#d7d5d2",fudge:"#4d4d4d",lightgrey:"#949a9e",white:"#fbfbfb",dimgrey:"#606c74",softblack:"#463D4F",dark:"#443d3d",black:"#333333"};},{}],2:[function(e,r,o){var n=e("./colors"),t={juno:["blue","mud","navy","slate","pink","burn"],barrow:["rouge","red","orange","burnt","brown","greygreen"],roma:["#8a849a","#b5b0bf","rose","lighter","greygreen","mud"],palmer:["red","navy","olive","pink","suede","sky"],mark:["#848f9a","#9aa4ac","slate","#b0b8bf","mud","grey"],salmon:["sky","sea","fuscia","slate","mud","fudge"],dupont:["green","brown","orange","red","olive","blue"],bloor:["night","navy","beige","rouge","mud","grey"],yukon:["mud","slate","brown","sky","beige","red"],david:["blue","green","yellow","red","pink","light"],neste:["mud","cherry","royal","rouge","greygreen","greypurple"],ken:["red","sky","#c67a53","greygreen","#dfb59f","mud"]};Object.keys(t).forEach(function(e){t[e]=t[e].map(function(e){return n[e]||e});}),r.exports=t;},{"./colors":1}],3:[function(e,r,o){var n=e("./colors"),t=e("./combos"),u={colors:n,list:Object.keys(n).map(function(e){return n[e]}),combos:t};r.exports=u;},{"./colors":1,"./combos":2}]},{},[3])(3)});
     });
 
-    /* src/shapes/Shape.svelte generated by Svelte v3.22.2 */
-    const file = "src/shapes/Shape.svelte";
+    let isDown = writable(false);
+
+    /* examples/toronto/Road.svelte generated by Svelte v3.22.2 */
+    const file = "examples/toronto/Road.svelte";
 
     function create_fragment(ctx) {
+    	let path;
+    	let path_stroke_value;
+    	let path_stroke_linecap_value;
+    	let path_stroke_width_value;
+    	let dispose;
+
+    	const block = {
+    		c: function create() {
+    			path = svg_element("path");
+    			attr_dev(path, "d", /*d*/ ctx[2]);
+    			attr_dev(path, "stroke", path_stroke_value = /*selected*/ ctx[1] ? "#D68881" : "#bfb0b3");
+    			attr_dev(path, "fill", "none");
+
+    			attr_dev(path, "stroke-linecap", path_stroke_linecap_value = /*hovering*/ ctx[0] || /*selected*/ ctx[1]
+    			? "round"
+    			: "butt");
+
+    			attr_dev(path, "stroke-width", path_stroke_width_value = /*hovering*/ ctx[0] || /*selected*/ ctx[1]
+    			? "5px"
+    			: "2px");
+
+    			add_location(path, file, 35, 0, 745);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor, remount) {
+    			insert_dev(target, path, anchor);
+    			if (remount) run_all(dispose);
+
+    			dispose = [
+    				listen_dev(path, "mouseenter", /*enter*/ ctx[3], false, false, false),
+    				listen_dev(path, "mouseleave", /*leave*/ ctx[4], false, false, false),
+    				listen_dev(path, "click", /*onClick*/ ctx[5], false, false, false)
+    			];
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*selected*/ 2 && path_stroke_value !== (path_stroke_value = /*selected*/ ctx[1] ? "#D68881" : "#bfb0b3")) {
+    				attr_dev(path, "stroke", path_stroke_value);
+    			}
+
+    			if (dirty & /*hovering, selected*/ 3 && path_stroke_linecap_value !== (path_stroke_linecap_value = /*hovering*/ ctx[0] || /*selected*/ ctx[1]
+    			? "round"
+    			: "butt")) {
+    				attr_dev(path, "stroke-linecap", path_stroke_linecap_value);
+    			}
+
+    			if (dirty & /*hovering, selected*/ 3 && path_stroke_width_value !== (path_stroke_width_value = /*hovering*/ ctx[0] || /*selected*/ ctx[1]
+    			? "5px"
+    			: "2px")) {
+    				attr_dev(path, "stroke-width", path_stroke_width_value);
+    			}
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(path);
+    			run_all(dispose);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance($$self, $$props, $$invalidate) {
+    	let $isDown;
+    	validate_store(isDown, "isDown");
+    	component_subscribe($$self, isDown, $$value => $$invalidate(9, $isDown = $$value));
+    	let { shape = "" } = $$props;
+    	let { stroke = "lightgrey" } = $$props;
+    	let { fill = "white" } = $$props;
+    	let hovering;
+    	let selected = false;
+    	fill = spencerColor.colors[fill] || fill;
+    	stroke = spencerColor.colors[stroke] || stroke;
+    	let projection = getContext("projection");
+    	const toPath = index().projection(projection);
+    	let d = toPath(shape);
+
+    	function enter() {
+    		if ($isDown === true) {
+    			$$invalidate(1, selected = true);
+    		} else {
+    			$$invalidate(0, hovering = true);
+    		}
+    	}
+
+    	function leave() {
+    		$$invalidate(0, hovering = false);
+    	}
+
+    	function onClick() {
+    		$$invalidate(1, selected = !selected);
+    	}
+
+    	const writable_props = ["shape", "stroke", "fill"];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Road> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+    	validate_slots("Road", $$slots, []);
+
+    	$$self.$set = $$props => {
+    		if ("shape" in $$props) $$invalidate(8, shape = $$props.shape);
+    		if ("stroke" in $$props) $$invalidate(6, stroke = $$props.stroke);
+    		if ("fill" in $$props) $$invalidate(7, fill = $$props.fill);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		getContext,
+    		d3Geo,
+    		topojson,
+    		c: spencerColor,
+    		isDown,
+    		shape,
+    		stroke,
+    		fill,
+    		hovering,
+    		selected,
+    		projection,
+    		toPath,
+    		d,
+    		enter,
+    		leave,
+    		onClick,
+    		$isDown
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ("shape" in $$props) $$invalidate(8, shape = $$props.shape);
+    		if ("stroke" in $$props) $$invalidate(6, stroke = $$props.stroke);
+    		if ("fill" in $$props) $$invalidate(7, fill = $$props.fill);
+    		if ("hovering" in $$props) $$invalidate(0, hovering = $$props.hovering);
+    		if ("selected" in $$props) $$invalidate(1, selected = $$props.selected);
+    		if ("projection" in $$props) projection = $$props.projection;
+    		if ("d" in $$props) $$invalidate(2, d = $$props.d);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [hovering, selected, d, enter, leave, onClick, stroke, fill, shape];
+    }
+
+    class Road extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance, create_fragment, safe_not_equal, { shape: 8, stroke: 6, fill: 7 });
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "Road",
+    			options,
+    			id: create_fragment.name
+    		});
+    	}
+
+    	get shape() {
+    		throw new Error("<Road>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set shape(value) {
+    		throw new Error("<Road>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get stroke() {
+    		throw new Error("<Road>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set stroke(value) {
+    		throw new Error("<Road>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get fill() {
+    		throw new Error("<Road>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set fill(value) {
+    		throw new Error("<Road>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/shapes/Shape.svelte generated by Svelte v3.22.2 */
+    const file$1 = "src/shapes/Shape.svelte";
+
+    function create_fragment$1(ctx) {
     	let path;
 
     	const block = {
@@ -4296,7 +4543,7 @@ var app = (function () {
     			attr_dev(path, "fill", /*fill*/ ctx[1]);
     			attr_dev(path, "stroke", /*stroke*/ ctx[0]);
     			attr_dev(path, "shape-rendering", "geometricPrecision");
-    			add_location(path, file, 22, 0, 630);
+    			add_location(path, file$1, 22, 0, 630);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -4322,7 +4569,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment.name,
+    		id: create_fragment$1.name,
     		type: "component",
     		source: "",
     		ctx
@@ -4331,7 +4578,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance($$self, $$props, $$invalidate) {
+    function instance$1($$self, $$props, $$invalidate) {
     	let { shape = "" } = $$props;
     	let { stroke = "lightgrey" } = $$props;
     	let { fill = "white" } = $$props;
@@ -4392,13 +4639,13 @@ var app = (function () {
     class Shape extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance, create_fragment, safe_not_equal, { shape: 3, stroke: 0, fill: 1 });
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { shape: 3, stroke: 0, fill: 1 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Shape",
     			options,
-    			id: create_fragment.name
+    			id: create_fragment$1.name
     		});
     	}
 
@@ -4572,12 +4819,12 @@ var app = (function () {
       return new Selection(subgroups, this._parents);
     }
 
-    function empty() {
+    function empty$1() {
       return [];
     }
 
     function selectorAll(selector) {
-      return selector == null ? empty : function() {
+      return selector == null ? empty$1 : function() {
         return this.querySelectorAll(selector);
       };
     }
@@ -8038,6 +8285,16 @@ var app = (function () {
         return points$1[input]
       }
       return input
+    };
+
+    const focusOn = function (shape, projection, width, height) {
+      let path = index().projection(projection);
+
+      var b = path.bounds(shape);
+      let s = 0.95 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
+      let t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
+      projection.scale(s).translate(t);
+      return projection
     };
 
     var type = "FeatureCollection";
@@ -61477,287 +61734,14 @@ var app = (function () {
     };
 
     /* src/Globe.svelte generated by Svelte v3.22.2 */
-
-    const file$1 = "src/Globe.svelte";
-
-    function create_fragment$1(ctx) {
-    	let div0;
-    	let t2;
-    	let div1;
-    	let t5;
-    	let svg;
-    	let svg_viewBox_value;
-    	let current;
-    	const default_slot_template = /*$$slots*/ ctx[13].default;
-    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[12], null);
-
-    	const block = {
-    		c: function create() {
-    			div0 = element("div");
-    			div0.textContent = `scale: ${JSON.stringify(/*s*/ ctx[2])}`;
-    			t2 = space();
-    			div1 = element("div");
-    			div1.textContent = `translate: ${JSON.stringify(/*t*/ ctx[3])}`;
-    			t5 = space();
-    			svg = svg_element("svg");
-    			if (default_slot) default_slot.c();
-    			add_location(div0, file$1, 50, 0, 1335);
-    			add_location(div1, file$1, 51, 0, 1373);
-    			attr_dev(svg, "viewBox", svg_viewBox_value = "0,0," + /*width*/ ctx[0] + "," + /*height*/ ctx[1]);
-    			attr_dev(svg, "preserveAspectRatio", "xMidYMid meet");
-    			set_style(svg, "margin", "10px 20px 25px 25px");
-    			attr_dev(svg, "class", "svelte-ip4obd");
-    			add_location(svg, file$1, 52, 0, 1415);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div0, anchor);
-    			insert_dev(target, t2, anchor);
-    			insert_dev(target, div1, anchor);
-    			insert_dev(target, t5, anchor);
-    			insert_dev(target, svg, anchor);
-
-    			if (default_slot) {
-    				default_slot.m(svg, null);
-    			}
-
-    			current = true;
-    		},
-    		p: function update(ctx, [dirty]) {
-    			if (default_slot) {
-    				if (default_slot.p && dirty & /*$$scope*/ 4096) {
-    					default_slot.p(get_slot_context(default_slot_template, ctx, /*$$scope*/ ctx[12], null), get_slot_changes(default_slot_template, /*$$scope*/ ctx[12], dirty, null));
-    				}
-    			}
-
-    			if (!current || dirty & /*width, height*/ 3 && svg_viewBox_value !== (svg_viewBox_value = "0,0," + /*width*/ ctx[0] + "," + /*height*/ ctx[1])) {
-    				attr_dev(svg, "viewBox", svg_viewBox_value);
-    			}
-    		},
-    		i: function intro(local) {
-    			if (current) return;
-    			transition_in(default_slot, local);
-    			current = true;
-    		},
-    		o: function outro(local) {
-    			transition_out(default_slot, local);
-    			current = false;
-    		},
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(div0);
-    			if (detaching) detach_dev(t2);
-    			if (detaching) detach_dev(div1);
-    			if (detaching) detach_dev(t5);
-    			if (detaching) detach_dev(svg);
-    			if (default_slot) default_slot.d(detaching);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_fragment$1.name,
-    		type: "component",
-    		source: "",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    function instance$1($$self, $$props, $$invalidate) {
-    	let { rotate = 0 } = $$props;
-    	let { tilt = 0 } = $$props;
-    	let { width = 500 } = $$props;
-    	let { height = 500 } = $$props;
-    	let { flat = false } = $$props;
-    	let { show = "" } = $$props;
-    	show = findPoint(show) || show || "";
-
-    	// let projection = d3Geo.geoOrthographic().scale(180)
-    	// if (flat) {
-    	let projection = mercator(); //.scale(zoom)
-
-    	projection.scale(1).translate([0, 0]);
-    	let path = index().projection(projection);
-    	let shape = countries$1.features[2];
-
-    	var b = path.bounds(shape),
-    		s = 0.95 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height),
-    		t = [
-    			(width - s * (b[1][0] + b[0][0])) / 2,
-    			(height - s * (b[1][1] + b[0][1])) / 2
-    		];
-
-    	projection.scale(s).translate(t);
-    	setContext("projection", projection);
-    	const writable_props = ["rotate", "tilt", "width", "height", "flat", "show"];
-
-    	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Globe> was created with unknown prop '${key}'`);
-    	});
-
-    	let { $$slots = {}, $$scope } = $$props;
-    	validate_slots("Globe", $$slots, ['default']);
-
-    	$$self.$set = $$props => {
-    		if ("rotate" in $$props) $$invalidate(5, rotate = $$props.rotate);
-    		if ("tilt" in $$props) $$invalidate(6, tilt = $$props.tilt);
-    		if ("width" in $$props) $$invalidate(0, width = $$props.width);
-    		if ("height" in $$props) $$invalidate(1, height = $$props.height);
-    		if ("flat" in $$props) $$invalidate(7, flat = $$props.flat);
-    		if ("show" in $$props) $$invalidate(4, show = $$props.show);
-    		if ("$$scope" in $$props) $$invalidate(12, $$scope = $$props.$$scope);
-    	};
-
-    	$$self.$capture_state = () => ({
-    		setContext,
-    		Shape,
-    		d3Geo,
-    		d3Zoom,
-    		findPoint,
-    		rotate,
-    		tilt,
-    		width,
-    		height,
-    		flat,
-    		show,
-    		projection,
-    		countries: countries$1,
-    		path,
-    		shape,
-    		b,
-    		s,
-    		t
-    	});
-
-    	$$self.$inject_state = $$props => {
-    		if ("rotate" in $$props) $$invalidate(5, rotate = $$props.rotate);
-    		if ("tilt" in $$props) $$invalidate(6, tilt = $$props.tilt);
-    		if ("width" in $$props) $$invalidate(0, width = $$props.width);
-    		if ("height" in $$props) $$invalidate(1, height = $$props.height);
-    		if ("flat" in $$props) $$invalidate(7, flat = $$props.flat);
-    		if ("show" in $$props) $$invalidate(4, show = $$props.show);
-    		if ("projection" in $$props) projection = $$props.projection;
-    		if ("path" in $$props) path = $$props.path;
-    		if ("shape" in $$props) shape = $$props.shape;
-    		if ("b" in $$props) b = $$props.b;
-    		if ("s" in $$props) $$invalidate(2, s = $$props.s);
-    		if ("t" in $$props) $$invalidate(3, t = $$props.t);
-    	};
-
-    	if ($$props && "$$inject" in $$props) {
-    		$$self.$inject_state($$props.$$inject);
-    	}
-
-    	return [
-    		width,
-    		height,
-    		s,
-    		t,
-    		show,
-    		rotate,
-    		tilt,
-    		flat,
-    		projection,
-    		path,
-    		shape,
-    		b,
-    		$$scope,
-    		$$slots
-    	];
-    }
-
-    class Globe extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, {
-    			rotate: 5,
-    			tilt: 6,
-    			width: 0,
-    			height: 1,
-    			flat: 7,
-    			show: 4
-    		});
-
-    		dispatch_dev("SvelteRegisterComponent", {
-    			component: this,
-    			tagName: "Globe",
-    			options,
-    			id: create_fragment$1.name
-    		});
-    	}
-
-    	get rotate() {
-    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set rotate(value) {
-    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get tilt() {
-    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set tilt(value) {
-    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get width() {
-    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set width(value) {
-    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get height() {
-    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set height(value) {
-    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get flat() {
-    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set flat(value) {
-    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get show() {
-    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set show(value) {
-    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-    }
-
-    const focusOn = function (shape, projection, width, height) {
-      let path = index().projection(projection);
-
-      var b = path.bounds(shape);
-      let s = 0.95 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
-      let t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
-      projection.scale(s).translate(t);
-      return projection
-    };
-
-    /* src/Map.svelte generated by Svelte v3.22.2 */
-    const file$2 = "src/Map.svelte";
+    const file$2 = "src/Globe.svelte";
 
     function create_fragment$2(ctx) {
     	let svg;
     	let svg_viewBox_value;
     	let current;
-    	const default_slot_template = /*$$slots*/ ctx[5].default;
-    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[4], null);
+    	const default_slot_template = /*$$slots*/ ctx[10].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[9], null);
 
     	const block = {
     		c: function create() {
@@ -61767,7 +61751,7 @@ var app = (function () {
     			attr_dev(svg, "preserveAspectRatio", "xMidYMid meet");
     			set_style(svg, "margin", "10px 20px 25px 25px");
     			attr_dev(svg, "class", "svelte-ip4obd");
-    			add_location(svg, file$2, 27, 0, 589);
+    			add_location(svg, file$2, 38, 0, 1003);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -61783,8 +61767,8 @@ var app = (function () {
     		},
     		p: function update(ctx, [dirty]) {
     			if (default_slot) {
-    				if (default_slot.p && dirty & /*$$scope*/ 16) {
-    					default_slot.p(get_slot_context(default_slot_template, ctx, /*$$scope*/ ctx[4], null), get_slot_changes(default_slot_template, /*$$scope*/ ctx[4], dirty, null));
+    				if (default_slot.p && dirty & /*$$scope*/ 512) {
+    					default_slot.p(get_slot_context(default_slot_template, ctx, /*$$scope*/ ctx[9], null), get_slot_changes(default_slot_template, /*$$scope*/ ctx[9], dirty, null));
     				}
     			}
 
@@ -61819,14 +61803,254 @@ var app = (function () {
     }
 
     function instance$2($$self, $$props, $$invalidate) {
+    	let { rotate = 0 } = $$props;
+    	let { tilt = 0 } = $$props;
+    	let { focus = countries$1 } = $$props;
+    	let { width = 500 } = $$props;
+    	let { height = 500 } = $$props;
+    	let { show = "" } = $$props;
+    	show = findPoint(show) || show || "";
+    	let projection = orthographic();
+    	projection.scale(1).translate([0, 0]);
+    	let path = index().projection(projection);
+    	let shape = countries$1.features[2];
+    	focusOn(focus, projection, width, height);
+
+    	// console.log(projection.rotate([0.1, 0.1, 0]))
+    	// if (rotate || tilt) {
+    	// projection.rotate([rotate, tilt, 3])
+    	// projection.rotate([0, 0, 0])
+    	// }
+    	setContext("projection", projection);
+
+    	const writable_props = ["rotate", "tilt", "focus", "width", "height", "show"];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Globe> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+    	validate_slots("Globe", $$slots, ['default']);
+
+    	$$self.$set = $$props => {
+    		if ("rotate" in $$props) $$invalidate(3, rotate = $$props.rotate);
+    		if ("tilt" in $$props) $$invalidate(4, tilt = $$props.tilt);
+    		if ("focus" in $$props) $$invalidate(5, focus = $$props.focus);
+    		if ("width" in $$props) $$invalidate(0, width = $$props.width);
+    		if ("height" in $$props) $$invalidate(1, height = $$props.height);
+    		if ("show" in $$props) $$invalidate(2, show = $$props.show);
+    		if ("$$scope" in $$props) $$invalidate(9, $$scope = $$props.$$scope);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		setContext,
+    		Shape,
+    		d3Geo,
+    		d3Zoom,
+    		findPoint,
+    		focusOn,
+    		countries: countries$1,
+    		rotate,
+    		tilt,
+    		focus,
+    		width,
+    		height,
+    		show,
+    		projection,
+    		path,
+    		shape
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ("rotate" in $$props) $$invalidate(3, rotate = $$props.rotate);
+    		if ("tilt" in $$props) $$invalidate(4, tilt = $$props.tilt);
+    		if ("focus" in $$props) $$invalidate(5, focus = $$props.focus);
+    		if ("width" in $$props) $$invalidate(0, width = $$props.width);
+    		if ("height" in $$props) $$invalidate(1, height = $$props.height);
+    		if ("show" in $$props) $$invalidate(2, show = $$props.show);
+    		if ("projection" in $$props) projection = $$props.projection;
+    		if ("path" in $$props) path = $$props.path;
+    		if ("shape" in $$props) shape = $$props.shape;
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [
+    		width,
+    		height,
+    		show,
+    		rotate,
+    		tilt,
+    		focus,
+    		projection,
+    		path,
+    		shape,
+    		$$scope,
+    		$$slots
+    	];
+    }
+
+    class Globe extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {
+    			rotate: 3,
+    			tilt: 4,
+    			focus: 5,
+    			width: 0,
+    			height: 1,
+    			show: 2
+    		});
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "Globe",
+    			options,
+    			id: create_fragment$2.name
+    		});
+    	}
+
+    	get rotate() {
+    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set rotate(value) {
+    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get tilt() {
+    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set tilt(value) {
+    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get focus() {
+    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set focus(value) {
+    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get width() {
+    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set width(value) {
+    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get height() {
+    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set height(value) {
+    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get show() {
+    		throw new Error("<Globe>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set show(value) {
+    		throw new Error("<Globe>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/Map.svelte generated by Svelte v3.22.2 */
+    const file$3 = "src/Map.svelte";
+
+    function create_fragment$3(ctx) {
+    	let svg;
+    	let svg_viewBox_value;
+    	let current;
+    	const default_slot_template = /*$$slots*/ ctx[6].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[5], null);
+
+    	const block = {
+    		c: function create() {
+    			svg = svg_element("svg");
+    			if (default_slot) default_slot.c();
+    			attr_dev(svg, "viewBox", svg_viewBox_value = "0,0," + /*width*/ ctx[0] + "," + /*height*/ ctx[1]);
+    			attr_dev(svg, "preserveAspectRatio", "xMidYMid meet");
+    			set_style(svg, "margin", "10px 20px 25px 25px");
+    			set_style(svg, "transform", "rotate3d(1, 0, 0, " + /*tilt*/ ctx[2] + "deg)");
+    			attr_dev(svg, "class", "svelte-ip4obd");
+    			add_location(svg, file$3, 29, 0, 713);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, svg, anchor);
+
+    			if (default_slot) {
+    				default_slot.m(svg, null);
+    			}
+
+    			current = true;
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (default_slot) {
+    				if (default_slot.p && dirty & /*$$scope*/ 32) {
+    					default_slot.p(get_slot_context(default_slot_template, ctx, /*$$scope*/ ctx[5], null), get_slot_changes(default_slot_template, /*$$scope*/ ctx[5], dirty, null));
+    				}
+    			}
+
+    			if (!current || dirty & /*width, height*/ 3 && svg_viewBox_value !== (svg_viewBox_value = "0,0," + /*width*/ ctx[0] + "," + /*height*/ ctx[1])) {
+    				attr_dev(svg, "viewBox", svg_viewBox_value);
+    			}
+
+    			if (!current || dirty & /*tilt*/ 4) {
+    				set_style(svg, "transform", "rotate3d(1, 0, 0, " + /*tilt*/ ctx[2] + "deg)");
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(default_slot, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(default_slot, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(svg);
+    			if (default_slot) default_slot.d(detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$3.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance$3($$self, $$props, $$invalidate) {
     	let { width = 500 } = $$props;
     	let { height = 300 } = $$props;
     	let { focus = [] } = $$props;
+    	let { tilt = 0 } = $$props;
     	let projection = mercator();
     	projection.scale(1).translate([0, 0]);
+    	projection.rotate([1, 0, 0]);
     	focusOn(focus, projection, width, height);
+
+    	// projection.zoom([3, 10, 1])
+    	// projection.transform([10, 10, 10])
     	setContext("projection", projection);
-    	const writable_props = ["width", "height", "focus"];
+
+    	const writable_props = ["width", "height", "focus", "tilt"];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Map> was created with unknown prop '${key}'`);
@@ -61838,8 +62062,9 @@ var app = (function () {
     	$$self.$set = $$props => {
     		if ("width" in $$props) $$invalidate(0, width = $$props.width);
     		if ("height" in $$props) $$invalidate(1, height = $$props.height);
-    		if ("focus" in $$props) $$invalidate(2, focus = $$props.focus);
-    		if ("$$scope" in $$props) $$invalidate(4, $$scope = $$props.$$scope);
+    		if ("focus" in $$props) $$invalidate(3, focus = $$props.focus);
+    		if ("tilt" in $$props) $$invalidate(2, tilt = $$props.tilt);
+    		if ("$$scope" in $$props) $$invalidate(5, $$scope = $$props.$$scope);
     	};
 
     	$$self.$capture_state = () => ({
@@ -61852,13 +62077,15 @@ var app = (function () {
     		width,
     		height,
     		focus,
+    		tilt,
     		projection
     	});
 
     	$$self.$inject_state = $$props => {
     		if ("width" in $$props) $$invalidate(0, width = $$props.width);
     		if ("height" in $$props) $$invalidate(1, height = $$props.height);
-    		if ("focus" in $$props) $$invalidate(2, focus = $$props.focus);
+    		if ("focus" in $$props) $$invalidate(3, focus = $$props.focus);
+    		if ("tilt" in $$props) $$invalidate(2, tilt = $$props.tilt);
     		if ("projection" in $$props) projection = $$props.projection;
     	};
 
@@ -61866,19 +62093,19 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [width, height, focus, projection, $$scope, $$slots];
+    	return [width, height, tilt, focus, projection, $$scope, $$slots];
     }
 
     class Map$1 extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, { width: 0, height: 1, focus: 2 });
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, { width: 0, height: 1, focus: 3, tilt: 2 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Map",
     			options,
-    			id: create_fragment$2.name
+    			id: create_fragment$3.name
     		});
     	}
 
@@ -61905,14 +62132,22 @@ var app = (function () {
     	set focus(value) {
     		throw new Error("<Map>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
+
+    	get tilt() {
+    		throw new Error("<Map>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set tilt(value) {
+    		throw new Error("<Map>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
     }
 
     /* src/shapes/Line.svelte generated by Svelte v3.22.2 */
 
     const { console: console_1 } = globals;
-    const file$3 = "src/shapes/Line.svelte";
+    const file$4 = "src/shapes/Line.svelte";
 
-    function create_fragment$3(ctx) {
+    function create_fragment$4(ctx) {
     	let path;
 
     	const block = {
@@ -61923,7 +62158,7 @@ var app = (function () {
     			attr_dev(path, "fill", "none");
     			attr_dev(path, "stroke", /*color*/ ctx[0]);
     			attr_dev(path, "stroke-linecap", "round");
-    			add_location(path, file$3, 26, 0, 613);
+    			add_location(path, file$4, 26, 0, 613);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -61945,7 +62180,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$3.name,
+    		id: create_fragment$4.name,
     		type: "component",
     		source: "",
     		ctx
@@ -61954,7 +62189,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$3($$self, $$props, $$invalidate) {
+    function instance$4($$self, $$props, $$invalidate) {
     	let { from = "" } = $$props;
     	let { to = "" } = $$props;
     	let { color = "blue" } = $$props;
@@ -62022,13 +62257,13 @@ var app = (function () {
     class Line extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$3, create_fragment$3, safe_not_equal, { from: 2, to: 3, color: 0 });
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, { from: 2, to: 3, color: 0 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Line",
     			options,
-    			id: create_fragment$3.name
+    			id: create_fragment$4.name
     		});
     	}
 
@@ -62057,10 +62292,221 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Dot.svelte generated by Svelte v3.22.2 */
-    const file$4 = "src/shapes/Dot.svelte";
+    /* src/shapes/Graticule.svelte generated by Svelte v3.22.2 */
+    const file$5 = "src/shapes/Graticule.svelte";
 
-    function create_fragment$4(ctx) {
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[7] = list[i];
+    	return child_ctx;
+    }
+
+    // (21:2) {#each lines as line}
+    function create_each_block(ctx) {
+    	let path;
+    	let path_d_value;
+
+    	const block = {
+    		c: function create() {
+    			path = svg_element("path");
+    			attr_dev(path, "d", path_d_value = /*toPath*/ ctx[1](/*line*/ ctx[7]));
+    			attr_dev(path, "fill", "none");
+    			attr_dev(path, "stroke", /*color*/ ctx[0]);
+    			attr_dev(path, "class", "line svelte-ky8zd5");
+    			add_location(path, file$5, 21, 4, 444);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, path, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*color*/ 1) {
+    				attr_dev(path, "stroke", /*color*/ ctx[0]);
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(path);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block.name,
+    		type: "each",
+    		source: "(21:2) {#each lines as line}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$5(ctx) {
+    	let g;
+    	let each_value = /*lines*/ ctx[2];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const block = {
+    		c: function create() {
+    			g = svg_element("g");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			attr_dev(g, "class", "graticule");
+    			add_location(g, file$5, 19, 0, 394);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, g, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(g, null);
+    			}
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*toPath, lines, color*/ 7) {
+    				each_value = /*lines*/ ctx[2];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(g, null);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
+    			}
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(g);
+    			destroy_each(each_blocks, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$5.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance$5($$self, $$props, $$invalidate) {
+    	let projection = getContext("projection");
+    	let { lat = 4 } = $$props;
+    	let { lon = 4 } = $$props;
+    	let { color = "#d7d5d2" } = $$props;
+    	const toPath = index().projection(projection);
+    	let grat = graticule().step([lon, lat]);
+    	let lines = grat.lines();
+    	const writable_props = ["lat", "lon", "color"];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Graticule> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+    	validate_slots("Graticule", $$slots, []);
+
+    	$$self.$set = $$props => {
+    		if ("lat" in $$props) $$invalidate(3, lat = $$props.lat);
+    		if ("lon" in $$props) $$invalidate(4, lon = $$props.lon);
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		getContext,
+    		d3Geo,
+    		projection,
+    		lat,
+    		lon,
+    		color,
+    		toPath,
+    		grat,
+    		lines
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ("projection" in $$props) projection = $$props.projection;
+    		if ("lat" in $$props) $$invalidate(3, lat = $$props.lat);
+    		if ("lon" in $$props) $$invalidate(4, lon = $$props.lon);
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    		if ("grat" in $$props) grat = $$props.grat;
+    		if ("lines" in $$props) $$invalidate(2, lines = $$props.lines);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [color, toPath, lines, lat, lon];
+    }
+
+    class Graticule extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$5, create_fragment$5, safe_not_equal, { lat: 3, lon: 4, color: 0 });
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "Graticule",
+    			options,
+    			id: create_fragment$5.name
+    		});
+    	}
+
+    	get lat() {
+    		throw new Error("<Graticule>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set lat(value) {
+    		throw new Error("<Graticule>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get lon() {
+    		throw new Error("<Graticule>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set lon(value) {
+    		throw new Error("<Graticule>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get color() {
+    		throw new Error("<Graticule>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<Graticule>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/shapes/Dot.svelte generated by Svelte v3.22.2 */
+    const file$6 = "src/shapes/Dot.svelte";
+
+    function create_fragment$6(ctx) {
     	let path_1;
     	let line;
     	let t;
@@ -62070,12 +62516,12 @@ var app = (function () {
     			path_1 = svg_element("path");
     			line = svg_element("line");
     			t = text(/*label*/ ctx[2]);
-    			add_location(line, file$4, 27, 2, 632);
+    			add_location(line, file$6, 27, 2, 632);
     			attr_dev(path_1, "d", /*d*/ ctx[3]);
     			attr_dev(path_1, "fill", /*color*/ ctx[0]);
     			attr_dev(path_1, "stroke", /*color*/ ctx[0]);
     			attr_dev(path_1, "fill-opacity", /*opacity*/ ctx[1]);
-    			add_location(path_1, file$4, 26, 0, 568);
+    			add_location(path_1, file$6, 26, 0, 568);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -62109,7 +62555,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$4.name,
+    		id: create_fragment$6.name,
     		type: "component",
     		source: "",
     		ctx
@@ -62118,7 +62564,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$4($$self, $$props, $$invalidate) {
+    function instance$6($$self, $$props, $$invalidate) {
     	let { at = "" } = $$props;
     	let { radius = 2 } = $$props;
     	let { opacity = 0.5 } = $$props;
@@ -62187,7 +62633,7 @@ var app = (function () {
     	constructor(options) {
     		super(options);
 
-    		init(this, options, instance$4, create_fragment$4, safe_not_equal, {
+    		init(this, options, instance$6, create_fragment$6, safe_not_equal, {
     			at: 4,
     			radius: 5,
     			opacity: 1,
@@ -62199,7 +62645,7 @@ var app = (function () {
     			component: this,
     			tagName: "Dot",
     			options,
-    			id: create_fragment$4.name
+    			id: create_fragment$6.name
     		});
     	}
 
@@ -62246,7 +62692,7 @@ var app = (function () {
 
     /* src/shapes/Countries.svelte generated by Svelte v3.22.2 */
 
-    function create_fragment$5(ctx) {
+    function create_fragment$7(ctx) {
     	let current;
 
     	const shape = new Shape({
@@ -62282,7 +62728,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$5.name,
+    		id: create_fragment$7.name,
     		type: "component",
     		source: "",
     		ctx
@@ -62291,7 +62737,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$5($$self, $$props, $$invalidate) {
+    function instance$7($$self, $$props, $$invalidate) {
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
@@ -62307,13 +62753,13 @@ var app = (function () {
     class Countries extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$5, create_fragment$5, safe_not_equal, {});
+    		init(this, options, instance$7, create_fragment$7, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Countries",
     			options,
-    			id: create_fragment$5.name
+    			id: create_fragment$7.name
     		});
     	}
     }
@@ -67545,16 +67991,16 @@ var app = (function () {
     /* src/shapes/Intersections.svelte generated by Svelte v3.22.2 */
 
     const { console: console_1$1 } = globals;
-    const file$5 = "src/shapes/Intersections.svelte";
+    const file$7 = "src/shapes/Intersections.svelte";
 
-    function get_each_context(ctx, list, i) {
+    function get_each_context$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
     	child_ctx[13] = list[i];
     	return child_ctx;
     }
 
     // (52:2) {#each dots as dot}
-    function create_each_block(ctx) {
+    function create_each_block$1(ctx) {
     	let circle;
     	let circle_cx_value;
     	let circle_cy_value;
@@ -67567,7 +68013,7 @@ var app = (function () {
     			attr_dev(circle, "fill", "red");
     			attr_dev(circle, "cx", circle_cx_value = /*dot*/ ctx[13].x);
     			attr_dev(circle, "cy", circle_cy_value = /*dot*/ ctx[13].y);
-    			add_location(circle, file$5, 52, 4, 1242);
+    			add_location(circle, file$7, 52, 4, 1242);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, circle, anchor);
@@ -67580,7 +68026,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block.name,
+    		id: create_each_block$1.name,
     		type: "each",
     		source: "(52:2) {#each dots as dot}",
     		ctx
@@ -67589,14 +68035,14 @@ var app = (function () {
     	return block;
     }
 
-    function create_fragment$6(ctx) {
+    function create_fragment$8(ctx) {
     	let g;
     	let each_value = /*dots*/ ctx[0];
     	validate_each_argument(each_value);
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
     	}
 
     	const block = {
@@ -67607,7 +68053,7 @@ var app = (function () {
     				each_blocks[i].c();
     			}
 
-    			add_location(g, file$5, 50, 0, 1212);
+    			add_location(g, file$7, 50, 0, 1212);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -67626,12 +68072,12 @@ var app = (function () {
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(child_ctx, dirty);
     					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i] = create_each_block$1(child_ctx);
     						each_blocks[i].c();
     						each_blocks[i].m(g, null);
     					}
@@ -67654,7 +68100,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$6.name,
+    		id: create_fragment$8.name,
     		type: "component",
     		source: "",
     		ctx
@@ -67663,7 +68109,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$6($$self, $$props, $$invalidate) {
+    function instance$8($$self, $$props, $$invalidate) {
     	let { shape = [] } = $$props;
     	let projection = getContext("projection");
     	const toPath = index().projection(projection);
@@ -67763,13 +68209,13 @@ var app = (function () {
     class Intersections extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$6, create_fragment$6, safe_not_equal, { shape: 1 });
+    		init(this, options, instance$8, create_fragment$8, safe_not_equal, { shape: 1 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Intersections",
     			options,
-    			id: create_fragment$6.name
+    			id: create_fragment$8.name
     		});
     	}
 
@@ -87341,59 +87787,167 @@ var app = (function () {
     	features: features$1
     };
 
-    /* examples/toronto/Globe.svelte generated by Svelte v3.22.2 */
-    const file$6 = "examples/toronto/Globe.svelte";
+    /* examples/toronto/Main.svelte generated by Svelte v3.22.2 */
+    const file$8 = "examples/toronto/Main.svelte";
 
-    // (23:2) <Map focus={roads}>
-    function create_default_slot(ctx) {
-    	let t0;
-    	let t1;
+    function get_each_context$2(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[3] = list[i];
+    	return child_ctx;
+    }
+
+    // (38:4) {#each eachRoad as road}
+    function create_each_block$2(ctx) {
     	let current;
-    	const countries = new Countries({ $$inline: true });
 
-    	const shape = new Shape({
-    			props: { shape: roads, fill: "blue" },
+    	const road = new Road({
+    			props: { shape: /*road*/ ctx[3] },
     			$$inline: true
     		});
 
-    	const intersections = new Intersections({ props: { shape: roads }, $$inline: true });
-
     	const block = {
     		c: function create() {
-    			create_component(countries.$$.fragment);
-    			t0 = space();
-    			create_component(shape.$$.fragment);
-    			t1 = space();
-    			create_component(intersections.$$.fragment);
+    			create_component(road.$$.fragment);
     		},
     		m: function mount(target, anchor) {
-    			mount_component(countries, target, anchor);
-    			insert_dev(target, t0, anchor);
-    			mount_component(shape, target, anchor);
-    			insert_dev(target, t1, anchor);
-    			mount_component(intersections, target, anchor);
+    			mount_component(road, target, anchor);
     			current = true;
     		},
     		p: noop,
     		i: function intro(local) {
     			if (current) return;
-    			transition_in(countries.$$.fragment, local);
-    			transition_in(shape.$$.fragment, local);
-    			transition_in(intersections.$$.fragment, local);
+    			transition_in(road.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
-    			transition_out(countries.$$.fragment, local);
-    			transition_out(shape.$$.fragment, local);
-    			transition_out(intersections.$$.fragment, local);
+    			transition_out(road.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
-    			destroy_component(countries, detaching);
+    			destroy_component(road, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$2.name,
+    		type: "each",
+    		source: "(38:4) {#each eachRoad as road}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (35:2) <Map focus={roads} tilt={50}>
+    function create_default_slot(ctx) {
+    	let t0;
+    	let t1;
+    	let each_1_anchor;
+    	let current;
+
+    	const graticule = new Graticule({
+    			props: { lat: 0.5, lon: 0.5 },
+    			$$inline: true
+    		});
+
+    	const countries = new Countries({ $$inline: true });
+    	let each_value = /*eachRoad*/ ctx[0];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	const block = {
+    		c: function create() {
+    			create_component(graticule.$$.fragment);
+    			t0 = space();
+    			create_component(countries.$$.fragment);
+    			t1 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(graticule, target, anchor);
+    			insert_dev(target, t0, anchor);
+    			mount_component(countries, target, anchor);
+    			insert_dev(target, t1, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert_dev(target, each_1_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*eachRoad*/ 1) {
+    				each_value = /*eachRoad*/ ctx[0];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$2(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(graticule.$$.fragment, local);
+    			transition_in(countries.$$.fragment, local);
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(graticule.$$.fragment, local);
+    			transition_out(countries.$$.fragment, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(graticule, detaching);
     			if (detaching) detach_dev(t0);
-    			destroy_component(shape, detaching);
+    			destroy_component(countries, detaching);
     			if (detaching) detach_dev(t1);
-    			destroy_component(intersections, detaching);
+    			destroy_each(each_blocks, detaching);
+    			if (detaching) detach_dev(each_1_anchor);
     		}
     	};
 
@@ -87401,20 +87955,22 @@ var app = (function () {
     		block,
     		id: create_default_slot.name,
     		type: "slot",
-    		source: "(23:2) <Map focus={roads}>",
+    		source: "(35:2) <Map focus={roads} tilt={50}>",
     		ctx
     	});
 
     	return block;
     }
 
-    function create_fragment$7(ctx) {
+    function create_fragment$9(ctx) {
     	let div;
     	let current;
+    	let dispose;
 
     	const map = new Map$1({
     			props: {
     				focus: roads,
+    				tilt: 50,
     				$$slots: { default: [create_default_slot] },
     				$$scope: { ctx }
     			},
@@ -87425,20 +87981,26 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			create_component(map.$$.fragment);
-    			add_location(div, file$6, 21, 0, 464);
+    			add_location(div, file$8, 33, 0, 675);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
-    		m: function mount(target, anchor) {
+    		m: function mount(target, anchor, remount) {
     			insert_dev(target, div, anchor);
     			mount_component(map, div, null);
     			current = true;
+    			if (remount) run_all(dispose);
+
+    			dispose = [
+    				listen_dev(div, "mousedown", /*onMouseDown*/ ctx[1], false, false, false),
+    				listen_dev(div, "mouseup", /*onMouseUp*/ ctx[2], false, false, false)
+    			];
     		},
     		p: function update(ctx, [dirty]) {
     			const map_changes = {};
 
-    			if (dirty & /*$$scope*/ 1) {
+    			if (dirty & /*$$scope*/ 64) {
     				map_changes.$$scope = { dirty, ctx };
     			}
 
@@ -87456,12 +88018,13 @@ var app = (function () {
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
     			destroy_component(map);
+    			run_all(dispose);
     		}
     	};
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$7.name,
+    		id: create_fragment$9.name,
     		type: "component",
     		source: "",
     		ctx
@@ -87470,19 +88033,32 @@ var app = (function () {
     	return block;
     }
 
-    function instance$7($$self, $$props, $$invalidate) {
+    function instance$9($$self, $$props, $$invalidate) {
+    	let eachRoad = roads.features.map(f => {
+    		return { type: "FeatureCollection", features: [f] };
+    	});
+
+    	function onMouseDown() {
+    		isDown.set(true);
+    	}
+
+    	function onMouseUp() {
+    		isDown.set(false);
+    	}
+
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Globe> was created with unknown prop '${key}'`);
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Main> was created with unknown prop '${key}'`);
     	});
 
     	let { $$slots = {}, $$scope } = $$props;
-    	validate_slots("Globe", $$slots, []);
+    	validate_slots("Main", $$slots, []);
 
     	$$self.$capture_state = () => ({
     		tweened,
     		cubicOut,
+    		Road,
     		Map: Map$1,
     		Globe,
     		Countries,
@@ -87490,27 +88066,40 @@ var app = (function () {
     		Dot,
     		Shape,
     		Intersections,
-    		roads
+    		Graticule,
+    		roads,
+    		isDown,
+    		eachRoad,
+    		onMouseDown,
+    		onMouseUp
     	});
 
-    	return [];
+    	$$self.$inject_state = $$props => {
+    		if ("eachRoad" in $$props) $$invalidate(0, eachRoad = $$props.eachRoad);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [eachRoad, onMouseDown, onMouseUp];
     }
 
-    class Globe_1 extends SvelteComponentDev {
+    class Main extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$7, create_fragment$7, safe_not_equal, {});
+    		init(this, options, instance$9, create_fragment$9, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
-    			tagName: "Globe_1",
+    			tagName: "Main",
     			options,
-    			id: create_fragment$7.name
+    			id: create_fragment$9.name
     		});
     	}
     }
 
-    const app = new Globe_1({
+    const app = new Main({
       target: document.body
     });
 
