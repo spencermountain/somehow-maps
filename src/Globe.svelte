@@ -2,12 +2,11 @@
   import { setContext } from 'svelte'
   import Shape from './shapes/Shape.svelte'
   import * as d3Geo from 'd3-geo'
-  import * as d3Zoom from 'd3-zoom'
   import findPoint from './lib/findPoint'
   import focusOn from './lib/focusOn'
   import countries from './data/more.geo.json'
-  export let rotate = 0
-  export let tilt = 0
+  // export let rotate = 0
+  // export let tilt = 0
   export let focus = countries
   export let width = 500
   export let height = 500

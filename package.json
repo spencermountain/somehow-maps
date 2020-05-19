@@ -1,9 +1,9 @@
 {
   "name": "somehow-maps",
   "description": "",
-  "version": "0.0.1",
-  "main": "src/index.js",
-  "unpkg": "builds/somehow-maps.min.js",
+  "version": "1.0.0",
+  "main": "src/index.mjs",
+  "module": "src/index.mjs",
   "author": "Spencer Kelly (spencermountain)",
   "homepage": "https://github.com/spencermountain/somehow-geo",
   "scripts": {
@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "d3-geo": "1.11.6",
-    "d3-zoom": "^1.8.3",
     "kld-intersections": "^0.7.0",
     "spencer-color": "^0.1.0",
     "topojson-client": "^3.0.0"
@@ -29,17 +28,13 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "11.1.0",
     "@rollup/plugin-node-resolve": "^7.0.0",
-    "prettier": "^2.0.5",
-    "prettier-plugin-svelte": "^0.7.0",
-    "pug": "^2.0.4",
     "rollup": "2.7.3",
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-livereload": "^1.0.0",
     "rollup-plugin-svelte": "^5.0.3",
     "rollup-plugin-terser": "^5.1.2",
     "serve": "^11.3.0",
-    "svelte": "^3.0.0",
-    "svelte-preprocess": "^3.7.4"
+    "svelte": "^3.0.0"
   },
   "licence": "MIT"
 }

@@ -2,8 +2,7 @@
   import { setContext } from 'svelte'
   import Shape from './shapes/Shape.svelte'
   import * as d3Geo from 'd3-geo'
-  import * as d3Zoom from 'd3-zoom'
-
+  // import * as d3Zoom from 'd3-zoom'
   import findPoint from './lib/findPoint'
   import focusOn from './lib/focusOn'
   export let width = 500
