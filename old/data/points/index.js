@@ -1,7 +1,7 @@
-export default Object.assign(
+module.exports = Object.assign(
   {},
   require('./cities'),
   require('./ontario'),
-  require('./north-america'),
+  require('./manitoba'),
   require('./countries')
 )

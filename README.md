@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://cloud.githubusercontent.com/assets/399657/23590290/ede73772-01aa-11e7-8915-181ef21027bc.png" />
-  <div>make a map, without thinking</div>
+  <div>make a map in svelte, with minimal thinking</div>
 
   <a href="https://npmjs.org/package/somehow-maps">
     <img src="https://img.shields.io/npm/v/somehow-maps.svg?style=flat-square" />
@@ -14,41 +14,50 @@
   <code>npm install somehow-maps</code>
 </div>
 
-<div align="center">
-**work-in-progress**
-</div>
+this library just hoodwinks some d3 projection methods into Svelte components -
+
+- so that basic SVG maps can be made in a leisurely way.
+- **work-in-progress!**
 
 ```js
-const somehowMaps = require('somehow-maps')
+<script>
+  import { Globe, Line, Graticule, Dot, Latitude } from 'somehow-map'
+</script>
 
-let w = somehowMaps({
-  height: 300,
-  aspect: 'widescreen'
-})
-
-w.shape({
-  shape: 'great-lakes'
-})
-
-w.line()
-  .from('toronto')
-  .to('winnipeg')
-  .color('red')
-
-w.dot()
-  .at('barrie')
-  .color('blue')
-
-w.text('Toronto')
-  .at('toronto')
-  .color('red')
-
-document.querySelector('#stage').innerHTML = w.build()
+<Globe rotate={30} tilt={-10}>
+  <Graticule />
+  <Latitude at={40} />
+  <Line from="toronto" to='jamaica' />
+  <Dot at={[90, 0]} color="lightblue" radius={50} />
+</Globe>
 ```
 
-![image](https://user-images.githubusercontent.com/399657/57199810-8cfdfb00-6f51-11e9-8ccd-39e5154e4ebd.png)
+### Components
 
----
+these two are the containers, and should be mostly interchangeable
+
+- `<Globe/>`
+- `<Map/>`
+  both of these accept a 'focus' param, what zooms the map projection to fit a geojson object.
+
+these are the basic primitives
+
+- `<Line from={[lat, lng]} to={'city-name'}/>`
+- `<Shape shape={geojson}/>`
+- `<Dot radius={4} at={'chicago'}/>`
+
+  these are continual lines around the whole world:
+
+- `<Latitude/>`
+- `<Longitude/>`
+
+  these are some helpers
+
+- `<Countries/>`
+- `<Graticule/>`
+- `<Intersections/>`
+
+### Misc
 
 to generate ad-hoc topojson shapes (without using QGIS):
 

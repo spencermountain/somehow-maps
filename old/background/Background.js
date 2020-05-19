@@ -48,7 +48,7 @@ class Shape {
   }
   drawSyle() {
     return Object.keys(this.style)
-      .map(k => {
+      .map((k) => {
         return `${k}:${this.style[k]};`
       })
       .join(' ')

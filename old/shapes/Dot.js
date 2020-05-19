@@ -12,6 +12,10 @@ class Dot extends Shape {
     this._type = 'Dot'
     this._radius = obj.radius || 5
   }
+  radius(n) {
+    this._radius = n
+    return this
+  }
   build() {
     let h = this.world.html
     let point = this.world.projection([this.point[1], this.point[0]])

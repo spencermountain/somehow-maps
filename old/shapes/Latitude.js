@@ -25,7 +25,7 @@ class Latitude extends Shape {
   }
   toData() {
     let arr = []
-    for (let lat = -180; lat < 180; lat += 10) {
+    for (let lat = -180; lat <= 180; lat += 10) {
       arr.push([lat, this._lng]) //create a ton of small line-segments
     }
     return {
