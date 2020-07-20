@@ -22,7 +22,7 @@
 <style>
   svg {
     margin: 10px 20px 25px 25px;
-    border: 1px solid lightgrey;
+    /* border: 1px solid lightgrey; */
   }
 </style>
 

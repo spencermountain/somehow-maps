@@ -6,6 +6,7 @@
   export let at = 0
   export let color = 'blue'
   export let label = ''
+  export let width = '2px'
   color = c.colors[color] || color
 
   let projection = getContext('projection')
@@ -27,6 +28,6 @@
   let d = toPath(geoJSON)
 </script>
 
-<path {d} fill="none" stroke={color}>
+<path {d} fill="none" stroke={color} stroke-width={width} stroke-linecap="round">
   <line>{label}</line>
 </path>
