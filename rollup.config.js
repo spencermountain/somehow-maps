@@ -5,7 +5,6 @@ import livereload from 'rollup-plugin-livereload'
 import { terser } from 'rollup-plugin-terser'
 import json from 'rollup-plugin-json'
 
-const example = 'toronto'
 const production = false
 
 function serve() {
@@ -24,7 +23,7 @@ function serve() {
 }
 
 export default {
-  input: `./examples/${example}/app.js`,
+  input: `./app.js`,
   output: {
     sourcemap: false,
     format: 'iife',
