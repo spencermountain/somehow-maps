@@ -30,16 +30,12 @@
 
 <style>
   svg {
-    margin: 10px 20px 25px 25px;
+    /* margin: 10px 20px 25px 25px; */
     /* border: 1px solid lightgrey; */
+    transform: translate(0, -10px);
   }
 </style>
 
-<svg
-  viewBox="0,0,{width},{height}"
-  width="100%"
-  height="100%"
-  preserveAspectRatio="xMidYMid meet"
-  style="margin: 10px 20px 25px 25px;">
+<svg viewBox="0,0,{width},{height}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <slot />
 </svg>
