@@ -31,12 +31,14 @@
 <style>
   svg {
     margin: 10px 20px 25px 25px;
-    border: 1px solid lightgrey;
+    /* border: 1px solid lightgrey; */
   }
 </style>
 
 <svg
   viewBox="0,0,{width},{height}"
+  width="100%"
+  height="100%"
   preserveAspectRatio="xMidYMid meet"
   style="margin: 10px 20px 25px 25px;">
   <slot />

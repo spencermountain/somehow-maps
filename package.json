@@ -1,7 +1,7 @@
 {
   "name": "somehow-maps",
   "description": "",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "src/index.mjs",
   "module": "src/index.mjs",
   "author": "Spencer Kelly (spencermountain)",
