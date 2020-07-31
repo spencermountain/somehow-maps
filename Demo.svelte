@@ -21,10 +21,10 @@
   </div>
   <hr class="mt5" />
   <div class="w16">
-    <!-- <Map tilt={-10}>
+    <Map tilt={-10}>
       <Graticule />
       <Countries color="lightgrey" />
       <Dot at={toronto} radius="2" />
-    </Map> -->
+    </Map>
   </div>
 </div>
