@@ -12,7 +12,6 @@
   export let height = 500
   export let show = ''
   show = findPoint(show) || show || ''
-  console.log(show)
   let projection = d3Geo.geoOrthographic()
   projection.scale(1).translate([0, 0])
 

@@ -4671,13 +4671,7 @@ var app = (function () {
     });
     var countries = obj;
 
-    var points$1 = Object.assign(
-      {},
-      cities,
-      ontario,
-      northAmerica,
-      countries
-    );
+    var points$1 = Object.assign({}, cities, ontario, northAmerica, countries);
 
     const findPoint = function (input) {
       if (points$1.hasOwnProperty(input)) {
