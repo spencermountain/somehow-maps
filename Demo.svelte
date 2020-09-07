@@ -16,7 +16,7 @@
   <div class="w16">
     <Globe>
       <Graticule />
-      <Countries color="lightgrey" />
+      <Countries stroke="lightgrey" />
       <Dot at={toronto} radius="2" />
     </Globe>
   </div>

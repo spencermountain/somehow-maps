@@ -33,11 +33,14 @@ this library just hoodwinks some d3 projection methods into Svelte components -
 
 <Globe rotate={30} tilt={-10}>
   <Graticule />
+  <Countries stroke="grey" />
   <Latitude at={40} />
   <Line from="toronto" to='jamaica' />
   <Dot at={[90, 0]} color="lightblue" radius={50} />
 </Globe>
 ```
+
+![image](https://user-images.githubusercontent.com/399657/92409352-494f6e80-f10e-11ea-82cf-51c8bdc8e4c0.png)
 
 ### Components
 
