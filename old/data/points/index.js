@@ -1,5 +1,0 @@
-const cities = require('./cities')
-const ontario = require('./ontario')
-const manitoba = require('./manitoba')
-const countries = require('./countries')
-module.exports = Object.assign({}, cities, ontario, manitoba, countries)

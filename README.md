@@ -1,14 +1,21 @@
 <div align="center">
-  <img src="https://cloud.githubusercontent.com/assets/399657/23590290/ede73772-01aa-11e7-8915-181ef21027bc.png" />
-  <div>make a map in svelte, with minimal thinking</div>
-
+  <div><b>somehow-maps</b></div>
+  <img src="https://user-images.githubusercontent.com/399657/68222691-6597f180-ffb9-11e9-8a32-a7f38aa8bded.png"/>
+  <div>— part of <a href="https://github.com/spencermountain/somehow">somehow</a> —</div>
+  <div>WIP svelte infographics</div>
+  <div align="center">
+    <sub>
+      by
+      <a href="https://spencermounta.in/">Spencer Kelly</a> 
+    </sub>
+  </div>
+</div>
+<div align="right">
   <a href="https://npmjs.org/package/somehow-maps">
     <img src="https://img.shields.io/npm/v/somehow-maps.svg?style=flat-square" />
   </a>
-  <a href="https://unpkg.com/somehow-maps">
-    <img src="https://badge-size.herokuapp.com/spencermountain/somehow/master/builds/somehow-maps.min.js" />
-  </a>
 </div>
+<img height="25px" src="https://user-images.githubusercontent.com/399657/68221862-17ceb980-ffb8-11e9-87d4-7b30b6488f16.png"/>
 
 <div align="center">
   <code>npm install somehow-maps</code>
@@ -26,11 +33,14 @@ this library just hoodwinks some d3 projection methods into Svelte components -
 
 <Globe rotate={30} tilt={-10}>
   <Graticule />
+  <Countries stroke="grey" />
   <Latitude at={40} />
   <Line from="toronto" to='jamaica' />
   <Dot at={[90, 0]} color="lightblue" radius={50} />
 </Globe>
 ```
+
+![image](https://user-images.githubusercontent.com/399657/92409352-494f6e80-f10e-11ea-82cf-51c8bdc8e4c0.png)
 
 ### Components
 
