@@ -30,6 +30,9 @@ var app = (function () {
     function safe_not_equal(a, b) {
         return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
     }
+    function is_empty(obj) {
+        return Object.keys(obj).length === 0;
+    }
     function create_slot(definition, ctx, $$scope, fn) {
         if (definition) {
             const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
@@ -58,6 +61,13 @@ var app = (function () {
             return $$scope.dirty | lets;
         }
         return $$scope.dirty;
+    }
+    function update_slot(slot, slot_definition, ctx, $$scope, dirty, get_slot_changes_fn, get_slot_context_fn) {
+        const slot_changes = get_slot_changes(slot_definition, $$scope, dirty, get_slot_changes_fn);
+        if (slot_changes) {
+            const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
+            slot.p(slot_context, slot_changes);
+        }
     }
 
     function append(target, node) {
@@ -273,14 +283,15 @@ var app = (function () {
             context: new Map(parent_component ? parent_component.$$.context : []),
             // everything else
             callbacks: blank_object(),
-            dirty
+            dirty,
+            skip_bound: false
         };
         let ready = false;
         $$.ctx = instance
             ? instance(component, prop_values, (i, ret, ...rest) => {
                 const value = rest.length ? rest[0] : ret;
                 if ($$.ctx && not_equal($$.ctx[i], $$.ctx[i] = value)) {
-                    if ($$.bound[i])
+                    if (!$$.skip_bound && $$.bound[i])
                         $$.bound[i](value);
                     if (ready)
                         make_dirty(component, i);
@@ -325,13 +336,17 @@ var app = (function () {
                     callbacks.splice(index, 1);
             };
         }
-        $set() {
-            // overridden by instance, if it has props
+        $set($$props) {
+            if (this.$$set && !is_empty($$props)) {
+                this.$$.skip_bound = true;
+                this.$$set($$props);
+                this.$$.skip_bound = false;
+            }
         }
     }
 
     function dispatch_dev(type, detail) {
-        document.dispatchEvent(custom_event(type, Object.assign({ version: '3.22.2' }, detail)));
+        document.dispatchEvent(custom_event(type, Object.assign({ version: '3.24.1' }, detail)));
     }
     function append_dev(target, node) {
         dispatch_dev("SvelteDOMInsert", { target, node });
@@ -354,7 +369,7 @@ var app = (function () {
     }
     function set_data_dev(text, data) {
         data = '' + data;
-        if (text.data === data)
+        if (text.wholeText === data)
             return;
         dispatch_dev("SvelteDOMSetData", { node: text, data });
         text.data = data;
@@ -392,45 +407,70 @@ var app = (function () {
         $inject_state() { }
     }
 
-    // Adds floating point numbers with twice the normal precision.
-    // Reference: J. R. Shewchuk, Adaptive Precision Floating-Point Arithmetic and
-    // Fast Robust Geometric Predicates, Discrete & Computational Geometry 18(3)
-    // 305–363 (1997).
-    // Code adapted from GeographicLib by Charles F. F. Karney,
-    // http://geographiclib.sourceforge.net/
-
-    function adder() {
-      return new Adder;
-    }
-
-    function Adder() {
-      this.reset();
-    }
-
-    Adder.prototype = {
-      constructor: Adder,
-      reset: function() {
-        this.s = // rounded value
-        this.t = 0; // exact error
-      },
-      add: function(y) {
-        add(temp, y, this.t);
-        add(this, temp.s, this.s);
-        if (this.s) this.t += temp.t;
-        else this.s = temp.t;
-      },
-      valueOf: function() {
-        return this.s;
+    // https://github.com/python/cpython/blob/a74eea238f5baba15797e2e8b570d153bc8690a7/Modules/mathmodule.c#L1423
+    class Adder {
+      constructor() {
+        this._partials = new Float64Array(32);
+        this._n = 0;
       }
-    };
+      add(x) {
+        const p = this._partials;
+        let i = 0;
+        for (let j = 0; j < this._n && j < 32; j++) {
+          const y = p[j],
+            hi = x + y,
+            lo = Math.abs(x) < Math.abs(y) ? x - (hi - y) : y - (hi - x);
+          if (lo) p[i++] = lo;
+          x = hi;
+        }
+        p[i] = x;
+        this._n = i + 1;
+        return this;
+      }
+      valueOf() {
+        const p = this._partials;
+        let n = this._n, x, y, lo, hi = 0;
+        if (n > 0) {
+          hi = p[--n];
+          while (n > 0) {
+            x = hi;
+            y = p[--n];
+            hi = x + y;
+            lo = y - (hi - x);
+            if (lo) break;
+          }
+          if (n > 0 && ((lo < 0 && p[n - 1] < 0) || (lo > 0 && p[n - 1] > 0))) {
+            y = lo * 2;
+            x = hi + y;
+            if (y == x - hi) hi = x;
+          }
+        }
+        return hi;
+      }
+    }
 
-    var temp = new Adder;
+    function* flatten(arrays) {
+      for (const array of arrays) {
+        yield* array;
+      }
+    }
 
-    function add(adder, a, b) {
-      var x = adder.s = a + b,
-          bv = x - a,
-          av = x - bv;
-      adder.t = (a - av) + (b - bv);
+    function merge(arrays) {
+      return Array.from(flatten(arrays));
+    }
+
+    function range(start, stop, step) {
+      start = +start, stop = +stop, step = (n = arguments.length) < 2 ? (stop = start, start = 0, 1) : n < 3 ? 1 : +step;
+
+      var i = -1,
+          n = Math.max(0, Math.ceil((stop - start) / step)) | 0,
+          range = new Array(n);
+
+      while (++i < n) {
+        range[i] = start + i * step;
+      }
+
+      return range;
     }
 
     var epsilon = 1e-6;
@@ -449,6 +489,7 @@ var app = (function () {
     var cos = Math.cos;
     var ceil = Math.ceil;
     var exp = Math.exp;
+    var hypot = Math.hypot;
     var log = Math.log;
     var pow = Math.pow;
     var sin = Math.sin;
@@ -540,9 +581,11 @@ var app = (function () {
       }
     }
 
-    var areaRingSum = adder();
+    var areaRingSum = new Adder();
 
-    var areaSum = adder(),
+    // hello?
+
+    var areaSum = new Adder(),
         lambda00,
         phi00,
         lambda0,
@@ -554,7 +597,7 @@ var app = (function () {
       lineStart: noop$1,
       lineEnd: noop$1,
       polygonStart: function() {
-        areaRingSum.reset();
+        areaRingSum = new Adder();
         areaStream.lineStart = areaRingStart;
         areaStream.lineEnd = areaRingEnd;
       },
@@ -605,7 +648,7 @@ var app = (function () {
     }
 
     function area(object) {
-      areaSum.reset();
+      areaSum = new Adder();
       geoStream(object, areaStream);
       return areaSum * 2;
     }
@@ -646,9 +689,9 @@ var app = (function () {
         lambda2, // previous lambda-coordinate
         lambda00$1, phi00$1, // first point
         p0, // previous 3D point
-        deltaSum = adder(),
+        deltaSum,
         ranges,
-        range;
+        range$1;
 
     var boundsStream = {
       point: boundsPoint,
@@ -658,7 +701,7 @@ var app = (function () {
         boundsStream.point = boundsRingPoint;
         boundsStream.lineStart = boundsRingStart;
         boundsStream.lineEnd = boundsRingEnd;
-        deltaSum.reset();
+        deltaSum = new Adder();
         areaStream.polygonStart();
       },
       polygonEnd: function() {
@@ -669,7 +712,7 @@ var app = (function () {
         if (areaRingSum < 0) lambda0$1 = -(lambda1 = 180), phi0 = -(phi1 = 90);
         else if (deltaSum > epsilon) phi1 = 90;
         else if (deltaSum < -epsilon) phi0 = -90;
-        range[0] = lambda0$1, range[1] = lambda1;
+        range$1[0] = lambda0$1, range$1[1] = lambda1;
       },
       sphere: function() {
         lambda0$1 = -(lambda1 = 180), phi0 = -(phi1 = 90);
@@ -677,7 +720,7 @@ var app = (function () {
     };
 
     function boundsPoint(lambda, phi) {
-      ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
+      ranges.push(range$1 = [lambda0$1 = lambda, lambda1 = lambda]);
       if (phi < phi0) phi0 = phi;
       if (phi > phi1) phi1 = phi;
     }
@@ -724,7 +767,7 @@ var app = (function () {
           }
         }
       } else {
-        ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
+        ranges.push(range$1 = [lambda0$1 = lambda, lambda1 = lambda]);
       }
       if (phi < phi0) phi0 = phi;
       if (phi > phi1) phi1 = phi;
@@ -736,7 +779,7 @@ var app = (function () {
     }
 
     function boundsLineEnd() {
-      range[0] = lambda0$1, range[1] = lambda1;
+      range$1[0] = lambda0$1, range$1[1] = lambda1;
       boundsStream.point = boundsPoint;
       p0 = null;
     }
@@ -760,7 +803,7 @@ var app = (function () {
       boundsRingPoint(lambda00$1, phi00$1);
       areaStream.lineEnd();
       if (abs(deltaSum) > epsilon) lambda0$1 = -(lambda1 = 180);
-      range[0] = lambda0$1, range[1] = lambda1;
+      range$1[0] = lambda0$1, range$1[1] = lambda1;
       p0 = null;
     }
 
@@ -809,7 +852,7 @@ var app = (function () {
         }
       }
 
-      ranges = range = null;
+      ranges = range$1 = null;
 
       return lambda0$1 === Infinity || phi0 === Infinity
           ? [[NaN, NaN], [NaN, NaN]]
@@ -915,12 +958,12 @@ var app = (function () {
           cx = y0 * z - z0 * y,
           cy = z0 * x - x0 * z,
           cz = x0 * y - y0 * x,
-          m = sqrt(cx * cx + cy * cy + cz * cz),
+          m = hypot(cx, cy, cz),
           w = asin(m), // line weight = angle
           v = m && -w / m; // area weight multiplier
-      X2 += v * cx;
-      Y2 += v * cy;
-      Z2 += v * cz;
+      X2.add(v * cx);
+      Y2.add(v * cy);
+      Z2.add(v * cz);
       W1 += w;
       X1 += w * (x0 + (x0 = x));
       Y1 += w * (y0 + (y0 = y));
@@ -931,26 +974,28 @@ var app = (function () {
     function centroid(object) {
       W0 = W1 =
       X0 = Y0 = Z0 =
-      X1 = Y1 = Z1 =
-      X2 = Y2 = Z2 = 0;
+      X1 = Y1 = Z1 = 0;
+      X2 = new Adder();
+      Y2 = new Adder();
+      Z2 = new Adder();
       geoStream(object, centroidStream);
 
-      var x = X2,
-          y = Y2,
-          z = Z2,
-          m = x * x + y * y + z * z;
+      var x = +X2,
+          y = +Y2,
+          z = +Z2,
+          m = hypot(x, y, z);
 
       // If the area-weighted ccentroid is undefined, fall back to length-weighted ccentroid.
       if (m < epsilon2) {
         x = X1, y = Y1, z = Z1;
         // If the feature has zero length, fall back to arithmetic mean of point vectors.
         if (W1 < epsilon) x = X0, y = Y0, z = Z0;
-        m = x * x + y * y + z * z;
+        m = hypot(x, y, z);
         // If the feature still has an undefined ccentroid, then return.
         if (m < epsilon2) return [NaN, NaN];
       }
 
-      return [atan2(y, x) * degrees, asin(z / sqrt(m)) * degrees];
+      return [atan2(y, x) * degrees, asin(z / m) * degrees];
     }
 
     function constant(x) {
@@ -1118,8 +1163,8 @@ var app = (function () {
       var lines = [],
           line;
       return {
-        point: function(x, y) {
-          line.push([x, y]);
+        point: function(x, y, m) {
+          line.push([x, y, m]);
         },
         lineStart: function() {
           lines.push(line = []);
@@ -1163,14 +1208,15 @@ var app = (function () {
         if ((n = segment.length - 1) <= 0) return;
         var n, p0 = segment[0], p1 = segment[n], x;
 
-        // If the first and last points of a segment are coincident, then treat as a
-        // closed ring. TODO if all rings are closed, then the winding order of the
-        // exterior ring should be checked.
         if (pointEqual(p0, p1)) {
-          stream.lineStart();
-          for (i = 0; i < n; ++i) stream.point((p0 = segment[i])[0], p0[1]);
-          stream.lineEnd();
-          return;
+          if (!p0[2] && !p1[2]) {
+            stream.lineStart();
+            for (i = 0; i < n; ++i) stream.point((p0 = segment[i])[0], p0[1]);
+            stream.lineEnd();
+            return;
+          }
+          // handle degenerate cases by moving the point
+          p1[0] += 2 * epsilon;
         }
 
         subject.push(x = new Intersection(p0, segment, null, true));
@@ -1241,8 +1287,6 @@ var app = (function () {
       b.p = a;
     }
 
-    var sum = adder();
-
     function longitude(point) {
       if (abs(point[0]) <= pi)
         return point[0];
@@ -1258,7 +1302,7 @@ var app = (function () {
           angle = 0,
           winding = 0;
 
-      sum.reset();
+      var sum = new Adder();
 
       if (sinPhi === 1) phi = halfPi + epsilon;
       else if (sinPhi === -1) phi = -halfPi - epsilon;
@@ -1314,81 +1358,7 @@ var app = (function () {
       // from the point to the South pole.  If it is zero, then the point is the
       // same side as the South pole.
 
-      return (angle < -epsilon || angle < epsilon && sum < -epsilon) ^ (winding & 1);
-    }
-
-    function ascending(a, b) {
-      return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
-    }
-
-    function bisector(compare) {
-      if (compare.length === 1) compare = ascendingComparator(compare);
-      return {
-        left: function(a, x, lo, hi) {
-          if (lo == null) lo = 0;
-          if (hi == null) hi = a.length;
-          while (lo < hi) {
-            var mid = lo + hi >>> 1;
-            if (compare(a[mid], x) < 0) lo = mid + 1;
-            else hi = mid;
-          }
-          return lo;
-        },
-        right: function(a, x, lo, hi) {
-          if (lo == null) lo = 0;
-          if (hi == null) hi = a.length;
-          while (lo < hi) {
-            var mid = lo + hi >>> 1;
-            if (compare(a[mid], x) > 0) hi = mid;
-            else lo = mid + 1;
-          }
-          return lo;
-        }
-      };
-    }
-
-    function ascendingComparator(f) {
-      return function(d, x) {
-        return ascending(f(d), x);
-      };
-    }
-
-    var ascendingBisect = bisector(ascending);
-
-    function range$1(start, stop, step) {
-      start = +start, stop = +stop, step = (n = arguments.length) < 2 ? (stop = start, start = 0, 1) : n < 3 ? 1 : +step;
-
-      var i = -1,
-          n = Math.max(0, Math.ceil((stop - start) / step)) | 0,
-          range = new Array(n);
-
-      while (++i < n) {
-        range[i] = start + i * step;
-      }
-
-      return range;
-    }
-
-    function merge(arrays) {
-      var n = arrays.length,
-          m,
-          i = -1,
-          j = 0,
-          merged,
-          array;
-
-      while (++i < n) j += arrays[i].length;
-      merged = new Array(j);
-
-      while (--n >= 0) {
-        array = arrays[n];
-        m = array.length;
-        while (--m >= 0) {
-          merged[--j] = array[m];
-        }
-      }
-
-      return merged;
+      return (angle < -epsilon || angle < epsilon && sum < -epsilon2) ^ (winding & 1);
     }
 
     function clip(pointVisible, clipLine, interpolate, start) {
@@ -1644,15 +1614,10 @@ var app = (function () {
                   ? v ? 0 : code(lambda, phi)
                   : v ? code(lambda + (lambda < 0 ? pi : -pi), phi) : 0;
             if (!point0 && (v00 = v0 = v)) stream.lineStart();
-            // Handle degeneracies.
-            // TODO ignore if not clipping polygons.
             if (v !== v0) {
               point2 = intersect(point0, point1);
-              if (!point2 || pointEqual(point0, point2) || pointEqual(point1, point2)) {
-                point1[0] += epsilon;
-                point1[1] += epsilon;
-                v = visible(point1[0], point1[1]);
-              }
+              if (!point2 || pointEqual(point0, point2) || pointEqual(point1, point2))
+                point1[2] = 1;
             }
             if (v !== v0) {
               clean = 0;
@@ -1664,7 +1629,7 @@ var app = (function () {
               } else {
                 // inside going out
                 point2 = intersect(point0, point1);
-                stream.point(point2[0], point2[1]);
+                stream.point(point2[0], point2[1], 2);
                 stream.lineEnd();
               }
               point0 = point2;
@@ -1683,7 +1648,7 @@ var app = (function () {
                   stream.point(t[1][0], t[1][1]);
                   stream.lineEnd();
                   stream.lineStart();
-                  stream.point(t[0][0], t[0][1]);
+                  stream.point(t[0][0], t[0][1], 3);
                 }
               }
             }
@@ -2026,7 +1991,7 @@ var app = (function () {
       };
     }
 
-    var lengthSum = adder(),
+    var lengthSum,
         lambda0$2,
         sinPhi0$1,
         cosPhi0$1;
@@ -2070,7 +2035,7 @@ var app = (function () {
     }
 
     function length(object) {
-      lengthSum.reset();
+      lengthSum = new Adder();
       geoStream(object, lengthStream);
       return +lengthSum;
     }
@@ -2179,12 +2144,12 @@ var app = (function () {
     }
 
     function graticuleX(y0, y1, dy) {
-      var y = range$1(y0, y1 - epsilon, dy).concat(y1);
+      var y = range(y0, y1 - epsilon, dy).concat(y1);
       return function(x) { return y.map(function(y) { return [x, y]; }); };
     }
 
     function graticuleY(x0, x1, dx) {
-      var x = range$1(x0, x1 - epsilon, dx).concat(x1);
+      var x = range(x0, x1 - epsilon, dx).concat(x1);
       return function(y) { return x.map(function(x) { return [x, y]; }); };
     }
 
@@ -2200,10 +2165,10 @@ var app = (function () {
       }
 
       function lines() {
-        return range$1(ceil(X0 / DX) * DX, X1, DX).map(X)
-            .concat(range$1(ceil(Y0 / DY) * DY, Y1, DY).map(Y))
-            .concat(range$1(ceil(x0 / dx) * dx, x1, dx).filter(function(x) { return abs(x % DX) > epsilon; }).map(x))
-            .concat(range$1(ceil(y0 / dy) * dy, y1, dy).filter(function(y) { return abs(y % DY) > epsilon; }).map(y));
+        return range(ceil(X0 / DX) * DX, X1, DX).map(X)
+            .concat(range(ceil(Y0 / DY) * DY, Y1, DY).map(Y))
+            .concat(range(ceil(x0 / dx) * dx, x1, dx).filter(function(x) { return abs(x % DX) > epsilon; }).map(x))
+            .concat(range(ceil(y0 / dy) * dy, y1, dy).filter(function(y) { return abs(y % DY) > epsilon; }).map(y));
       }
 
       graticule.lines = function() {
@@ -2316,12 +2281,10 @@ var app = (function () {
       return interpolate;
     }
 
-    function identity(x) {
-      return x;
-    }
+    var identity = x => x;
 
-    var areaSum$1 = adder(),
-        areaRingSum$1 = adder(),
+    var areaSum$1 = new Adder(),
+        areaRingSum$1 = new Adder(),
         x00,
         y00,
         x0$1,
@@ -2338,11 +2301,11 @@ var app = (function () {
       polygonEnd: function() {
         areaStream$1.lineStart = areaStream$1.lineEnd = areaStream$1.point = noop$1;
         areaSum$1.add(abs(areaRingSum$1));
-        areaRingSum$1.reset();
+        areaRingSum$1 = new Adder();
       },
       result: function() {
         var area = areaSum$1 / 2;
-        areaSum$1.reset();
+        areaSum$1 = new Adder();
         return area;
       }
     };
@@ -2530,7 +2493,7 @@ var app = (function () {
       result: noop$1
     };
 
-    var lengthSum$1 = adder(),
+    var lengthSum$1 = new Adder(),
         lengthRing,
         x00$2,
         y00$2,
@@ -2554,7 +2517,7 @@ var app = (function () {
       },
       result: function() {
         var length = +lengthSum$1;
-        lengthSum$1.reset();
+        lengthSum$1 = new Adder();
         return length;
       }
     };
@@ -2869,17 +2832,19 @@ var app = (function () {
       });
     }
 
-    function scaleTranslate(k, dx, dy) {
+    function scaleTranslate(k, dx, dy, sx, sy) {
       function transform(x, y) {
+        x *= sx; y *= sy;
         return [dx + k * x, dy - k * y];
       }
       transform.invert = function(x, y) {
-        return [(x - dx) / k, (dy - y) / k];
+        return [(x - dx) / k * sx, (dy - y) / k * sy];
       };
       return transform;
     }
 
-    function scaleTranslateRotate(k, dx, dy, alpha) {
+    function scaleTranslateRotate(k, dx, dy, sx, sy, alpha) {
+      if (!alpha) return scaleTranslate(k, dx, dy, sx, sy);
       var cosAlpha = cos(alpha),
           sinAlpha = sin(alpha),
           a = cosAlpha * k,
@@ -2889,10 +2854,11 @@ var app = (function () {
           ci = (sinAlpha * dy - cosAlpha * dx) / k,
           fi = (sinAlpha * dx + cosAlpha * dy) / k;
       function transform(x, y) {
+        x *= sx; y *= sy;
         return [a * x - b * y + dx, dy - b * x - a * y];
       }
       transform.invert = function(x, y) {
-        return [ai * x - bi * y + ci, fi - bi * x - ai * y];
+        return [sx * (ai * x - bi * y + ci), sy * (fi - bi * x - ai * y)];
       };
       return transform;
     }
@@ -2907,7 +2873,9 @@ var app = (function () {
           x = 480, y = 250, // translate
           lambda = 0, phi = 0, // center
           deltaLambda = 0, deltaPhi = 0, deltaGamma = 0, rotate, // pre-rotate
-          alpha = 0, // post-rotate
+          alpha = 0, // post-rotate angle
+          sx = 1, // reflectX
+          sy = 1, // reflectX
           theta = null, preclip = clipAntimeridian, // pre-clip angle
           x0 = null, y0, x1, y1, postclip = identity, // post-clip extent
           delta2 = 0.5, // precision
@@ -2966,6 +2934,14 @@ var app = (function () {
         return arguments.length ? (alpha = _ % 360 * radians, recenter()) : alpha * degrees;
       };
 
+      projection.reflectX = function(_) {
+        return arguments.length ? (sx = _ ? -1 : 1, recenter()) : sx < 0;
+      };
+
+      projection.reflectY = function(_) {
+        return arguments.length ? (sy = _ ? -1 : 1, recenter()) : sy < 0;
+      };
+
       projection.precision = function(_) {
         return arguments.length ? (projectResample = resample(projectTransform, delta2 = _ * _), reset()) : sqrt(delta2);
       };
@@ -2987,8 +2963,8 @@ var app = (function () {
       };
 
       function recenter() {
-        var center = scaleTranslateRotate(k, 0, 0, alpha).apply(null, project(lambda, phi)),
-            transform = (alpha ? scaleTranslateRotate : scaleTranslate)(k, x - center[0], y - center[1], alpha);
+        var center = scaleTranslateRotate(k, 0, 0, sx, sy, alpha).apply(null, project(lambda, phi)),
+            transform = scaleTranslateRotate(k, x - center[0], y - center[1], sx, sy, alpha);
         rotate = rotateRadians(deltaLambda, deltaPhi, deltaGamma);
         projectTransform = compose(project, transform);
         projectRotateTransform = compose(rotate, projectTransform);
@@ -3049,8 +3025,11 @@ var app = (function () {
       }
 
       project.invert = function(x, y) {
-        var r0y = r0 - y;
-        return [atan2(x, abs(r0y)) / n * sign(r0y), asin((c - (x * x + r0y * r0y) * n * n) / (2 * n))];
+        var r0y = r0 - y,
+            l = atan2(x, abs(r0y)) * sign(r0y);
+        if (r0y * n < 0)
+          l -= pi * sign(x) * sign(r0y);
+        return [l / n, asin((c - (x * x + r0y * r0y) * n * n) / (2 * n))];
       };
 
       return project;
@@ -3183,6 +3162,7 @@ var app = (function () {
         var cx = cos(x),
             cy = cos(y),
             k = scale(cx * cy);
+            if (k === Infinity) return [2, 0];
         return [
           k * cy * sin(x),
           k * sin(y)
@@ -3299,8 +3279,11 @@ var app = (function () {
       }
 
       project.invert = function(x, y) {
-        var fy = f - y, r = sign(n) * sqrt(x * x + fy * fy);
-        return [atan2(x, abs(fy)) / n * sign(fy), 2 * atan(pow(f / r, 1 / n)) - halfPi];
+        var fy = f - y, r = sign(n) * sqrt(x * x + fy * fy),
+          l = atan2(x, abs(fy)) * sign(fy);
+        if (fy * n < 0)
+          l -= pi * sign(x) * sign(fy);
+        return [l / n, 2 * atan(pow(f / r, 1 / n)) - halfPi];
       };
 
       return project;
@@ -3336,8 +3319,11 @@ var app = (function () {
       }
 
       project.invert = function(x, y) {
-        var gy = g - y;
-        return [atan2(x, abs(gy)) / n * sign(gy), g - sign(n) * sqrt(x * x + gy * gy)];
+        var gy = g - y,
+            l = atan2(x, abs(gy)) * sign(gy);
+        if (gy * n < 0)
+          l -= pi * sign(x) * sign(gy);
+        return [l / n, g - sign(n) * sqrt(x * x + gy * gy)];
       };
 
       return project;
@@ -3396,62 +3382,84 @@ var app = (function () {
           .clipAngle(60);
     }
 
-    function scaleTranslate$1(kx, ky, tx, ty) {
-      return kx === 1 && ky === 1 && tx === 0 && ty === 0 ? identity : transformer({
-        point: function(x, y) {
-          this.stream.point(x * kx + tx, y * ky + ty);
-        }
-      });
-    }
-
     function identity$1() {
-      var k = 1, tx = 0, ty = 0, sx = 1, sy = 1, transform = identity, // scale, translate and reflect
+      var k = 1, tx = 0, ty = 0, sx = 1, sy = 1, // scale, translate and reflect
+          alpha = 0, ca, sa, // angle
           x0 = null, y0, x1, y1, // clip extent
+          kx = 1, ky = 1,
+          transform = transformer({
+            point: function(x, y) {
+              var p = projection([x, y]);
+              this.stream.point(p[0], p[1]);
+            }
+          }),
           postclip = identity,
           cache,
-          cacheStream,
-          projection;
+          cacheStream;
 
       function reset() {
+        kx = k * sx;
+        ky = k * sy;
         cache = cacheStream = null;
         return projection;
       }
 
-      return projection = {
-        stream: function(stream) {
-          return cache && cacheStream === stream ? cache : cache = transform(postclip(cacheStream = stream));
-        },
-        postclip: function(_) {
-          return arguments.length ? (postclip = _, x0 = y0 = x1 = y1 = null, reset()) : postclip;
-        },
-        clipExtent: function(_) {
-          return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity) : clipRectangle(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
-        },
-        scale: function(_) {
-          return arguments.length ? (transform = scaleTranslate$1((k = +_) * sx, k * sy, tx, ty), reset()) : k;
-        },
-        translate: function(_) {
-          return arguments.length ? (transform = scaleTranslate$1(k * sx, k * sy, tx = +_[0], ty = +_[1]), reset()) : [tx, ty];
-        },
-        reflectX: function(_) {
-          return arguments.length ? (transform = scaleTranslate$1(k * (sx = _ ? -1 : 1), k * sy, tx, ty), reset()) : sx < 0;
-        },
-        reflectY: function(_) {
-          return arguments.length ? (transform = scaleTranslate$1(k * sx, k * (sy = _ ? -1 : 1), tx, ty), reset()) : sy < 0;
-        },
-        fitExtent: function(extent, object) {
-          return fitExtent(projection, extent, object);
-        },
-        fitSize: function(size, object) {
-          return fitSize(projection, size, object);
-        },
-        fitWidth: function(width, object) {
-          return fitWidth(projection, width, object);
-        },
-        fitHeight: function(height, object) {
-          return fitHeight(projection, height, object);
+      function projection (p) {
+        var x = p[0] * kx, y = p[1] * ky;
+        if (alpha) {
+          var t = y * ca - x * sa;
+          x = x * ca + y * sa;
+          y = t;
+        }    
+        return [x + tx, y + ty];
+      }
+      projection.invert = function(p) {
+        var x = p[0] - tx, y = p[1] - ty;
+        if (alpha) {
+          var t = y * ca + x * sa;
+          x = x * ca - y * sa;
+          y = t;
         }
+        return [x / kx, y / ky];
       };
+      projection.stream = function(stream) {
+        return cache && cacheStream === stream ? cache : cache = transform(postclip(cacheStream = stream));
+      };
+      projection.postclip = function(_) {
+        return arguments.length ? (postclip = _, x0 = y0 = x1 = y1 = null, reset()) : postclip;
+      };
+      projection.clipExtent = function(_) {
+        return arguments.length ? (postclip = _ == null ? (x0 = y0 = x1 = y1 = null, identity) : clipRectangle(x0 = +_[0][0], y0 = +_[0][1], x1 = +_[1][0], y1 = +_[1][1]), reset()) : x0 == null ? null : [[x0, y0], [x1, y1]];
+      };
+      projection.scale = function(_) {
+        return arguments.length ? (k = +_, reset()) : k;
+      };
+      projection.translate = function(_) {
+        return arguments.length ? (tx = +_[0], ty = +_[1], reset()) : [tx, ty];
+      };
+      projection.angle = function(_) {
+        return arguments.length ? (alpha = _ % 360 * radians, sa = sin(alpha), ca = cos(alpha), reset()) : alpha * degrees;
+      };
+      projection.reflectX = function(_) {
+        return arguments.length ? (sx = _ ? -1 : 1, reset()) : sx < 0;
+      };
+      projection.reflectY = function(_) {
+        return arguments.length ? (sy = _ ? -1 : 1, reset()) : sy < 0;
+      };
+      projection.fitExtent = function(extent, object) {
+        return fitExtent(projection, extent, object);
+      };
+      projection.fitSize = function(size, object) {
+        return fitSize(projection, size, object);
+      };
+      projection.fitWidth = function(width, object) {
+        return fitWidth(projection, width, object);
+      };
+      projection.fitHeight = function(height, object) {
+        return fitHeight(projection, height, object);
+      };
+
+      return projection;
     }
 
     function naturalEarth1Raw(lambda, phi) {
@@ -3651,6 +3659,7 @@ var app = (function () {
     }
 
     function feature(topology, o) {
+      if (typeof o === "string") o = topology.objects[o];
       return o.type === "GeometryCollection"
           ? {type: "FeatureCollection", features: o.geometries.map(function(o) { return feature$1(topology, o); })}
           : feature$1(topology, o);
@@ -3937,6 +3946,8 @@ var app = (function () {
           }
 
           return arcs;
+        }).filter(function(arcs) {
+          return arcs.length > 0;
         })
       };
     }
@@ -4083,8 +4094,14 @@ var app = (function () {
         untransform: untransform
     });
 
-    function createCommonjsModule(fn, module) {
-    	return module = { exports: {} }, fn(module, module.exports), module.exports;
+    function createCommonjsModule(fn, basedir, module) {
+    	return module = {
+    	  path: basedir,
+    	  exports: {},
+    	  require: function (path, base) {
+          return commonjsRequire(path, (base === undefined || base === null) ? module.path : base);
+        }
+    	}, fn(module, module.exports), module.exports;
     }
 
     function commonjsRequire () {
@@ -4095,7 +4112,7 @@ var app = (function () {
     !function(e){module.exports=e();}(function(){return function u(i,a,c){function f(r,e){if(!a[r]){if(!i[r]){var o="function"==typeof commonjsRequire&&commonjsRequire;if(!e&&o)return o(r,!0);if(d)return d(r,!0);var n=new Error("Cannot find module '"+r+"'");throw n.code="MODULE_NOT_FOUND",n}var t=a[r]={exports:{}};i[r][0].call(t.exports,function(e){return f(i[r][1][e]||e)},t,t.exports,u,i,a,c);}return a[r].exports}for(var d="function"==typeof commonjsRequire&&commonjsRequire,e=0;e<c.length;e++)f(c[e]);return f}({1:[function(e,r,o){r.exports={blue:"#6699cc",green:"#6accb2",yellow:"#e1e6b3",red:"#cc7066",pink:"#F2C0BB",brown:"#705E5C",orange:"#cc8a66",purple:"#d8b3e6",navy:"#335799",olive:"#7f9c6c",fuscia:"#735873",beige:"#e6d7b3",slate:"#8C8C88",suede:"#9c896c",burnt:"#603a39",sea:"#50617A",sky:"#2D85A8",night:"#303b50",rouge:"#914045",grey:"#838B91",mud:"#C4ABAB",royal:"#275291",cherry:"#cc6966",tulip:"#e6b3bc",rose:"#D68881",fire:"#AB5850",greyblue:"#72697D",greygreen:"#8BA3A2",greypurple:"#978BA3",burn:"#6D5685",slategrey:"#bfb0b3",light:"#a3a5a5",lighter:"#d7d5d2",fudge:"#4d4d4d",lightgrey:"#949a9e",white:"#fbfbfb",dimgrey:"#606c74",softblack:"#463D4F",dark:"#443d3d",black:"#333333"};},{}],2:[function(e,r,o){var n=e("./colors"),t={juno:["blue","mud","navy","slate","pink","burn"],barrow:["rouge","red","orange","burnt","brown","greygreen"],roma:["#8a849a","#b5b0bf","rose","lighter","greygreen","mud"],palmer:["red","navy","olive","pink","suede","sky"],mark:["#848f9a","#9aa4ac","slate","#b0b8bf","mud","grey"],salmon:["sky","sea","fuscia","slate","mud","fudge"],dupont:["green","brown","orange","red","olive","blue"],bloor:["night","navy","beige","rouge","mud","grey"],yukon:["mud","slate","brown","sky","beige","red"],david:["blue","green","yellow","red","pink","light"],neste:["mud","cherry","royal","rouge","greygreen","greypurple"],ken:["red","sky","#c67a53","greygreen","#dfb59f","mud"]};Object.keys(t).forEach(function(e){t[e]=t[e].map(function(e){return n[e]||e});}),r.exports=t;},{"./colors":1}],3:[function(e,r,o){var n=e("./colors"),t=e("./combos"),u={colors:n,list:Object.keys(n).map(function(e){return n[e]}),combos:t};r.exports=u;},{"./colors":1,"./combos":2}]},{},[3])(3)});
     });
 
-    /* src/shapes/Shape.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Shape.svelte generated by Svelte v3.24.1 */
     const file = "src/shapes/Shape.svelte";
 
     function create_fragment(ctx) {
@@ -4167,7 +4184,7 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Shape", $$slots, []);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("shape" in $$props) $$invalidate(3, shape = $$props.shape);
     		if ("stroke" in $$props) $$invalidate(0, stroke = $$props.stroke);
     		if ("fill" in $$props) $$invalidate(1, fill = $$props.fill);
@@ -58126,15 +58143,15 @@ var app = (function () {
     	features: features
     };
 
-    /* src/Globe.svelte generated by Svelte v3.22.2 */
+    /* src/Globe.svelte generated by Svelte v3.24.1 */
     const file$1 = "src/Globe.svelte";
 
     function create_fragment$1(ctx) {
     	let svg;
     	let svg_viewBox_value;
     	let current;
-    	const default_slot_template = /*$$slots*/ ctx[8].default;
-    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[7], null);
+    	const default_slot_template = /*$$slots*/ ctx[5].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[4], null);
 
     	const block = {
     		c: function create() {
@@ -58144,9 +58161,8 @@ var app = (function () {
     			attr_dev(svg, "width", "100%");
     			attr_dev(svg, "height", "100%");
     			attr_dev(svg, "preserveAspectRatio", "xMidYMid meet");
-    			set_style(svg, "margin", "10px 20px 25px 25px");
-    			attr_dev(svg, "class", "svelte-1uiscpv");
-    			add_location(svg, file$1, 37, 0, 979);
+    			attr_dev(svg, "class", "svelte-8nipt5");
+    			add_location(svg, file$1, 38, 0, 1021);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -58162,8 +58178,8 @@ var app = (function () {
     		},
     		p: function update(ctx, [dirty]) {
     			if (default_slot) {
-    				if (default_slot.p && dirty & /*$$scope*/ 128) {
-    					default_slot.p(get_slot_context(default_slot_template, ctx, /*$$scope*/ ctx[7], null), get_slot_changes(default_slot_template, /*$$scope*/ ctx[7], dirty, null));
+    				if (default_slot.p && dirty & /*$$scope*/ 16) {
+    					update_slot(default_slot, default_slot_template, ctx, /*$$scope*/ ctx[4], dirty, null, null);
     				}
     			}
 
@@ -58225,12 +58241,12 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Globe", $$slots, ['default']);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("focus" in $$props) $$invalidate(3, focus = $$props.focus);
     		if ("width" in $$props) $$invalidate(0, width = $$props.width);
     		if ("height" in $$props) $$invalidate(1, height = $$props.height);
     		if ("show" in $$props) $$invalidate(2, show = $$props.show);
-    		if ("$$scope" in $$props) $$invalidate(7, $$scope = $$props.$$scope);
+    		if ("$$scope" in $$props) $$invalidate(4, $$scope = $$props.$$scope);
     	};
 
     	$$self.$capture_state = () => ({
@@ -58263,7 +58279,7 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [width, height, show, focus, projection, path, shape, $$scope, $$slots];
+    	return [width, height, show, focus, $$scope, $$slots];
     }
 
     class Globe extends SvelteComponentDev {
@@ -58312,15 +58328,15 @@ var app = (function () {
     	}
     }
 
-    /* src/Map.svelte generated by Svelte v3.22.2 */
+    /* src/Map.svelte generated by Svelte v3.24.1 */
     const file$2 = "src/Map.svelte";
 
     function create_fragment$2(ctx) {
     	let svg;
     	let svg_viewBox_value;
     	let current;
-    	const default_slot_template = /*$$slots*/ ctx[6].default;
-    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[5], null);
+    	const default_slot_template = /*$$slots*/ ctx[5].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[4], null);
 
     	const block = {
     		c: function create() {
@@ -58349,8 +58365,8 @@ var app = (function () {
     		},
     		p: function update(ctx, [dirty]) {
     			if (default_slot) {
-    				if (default_slot.p && dirty & /*$$scope*/ 32) {
-    					default_slot.p(get_slot_context(default_slot_template, ctx, /*$$scope*/ ctx[5], null), get_slot_changes(default_slot_template, /*$$scope*/ ctx[5], dirty, null));
+    				if (default_slot.p && dirty & /*$$scope*/ 16) {
+    					update_slot(default_slot, default_slot_template, ctx, /*$$scope*/ ctx[4], dirty, null, null);
     				}
     			}
 
@@ -58411,12 +58427,12 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Map", $$slots, ['default']);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("width" in $$props) $$invalidate(0, width = $$props.width);
     		if ("height" in $$props) $$invalidate(1, height = $$props.height);
     		if ("focus" in $$props) $$invalidate(3, focus = $$props.focus);
     		if ("tilt" in $$props) $$invalidate(2, tilt = $$props.tilt);
-    		if ("$$scope" in $$props) $$invalidate(5, $$scope = $$props.$$scope);
+    		if ("$$scope" in $$props) $$invalidate(4, $$scope = $$props.$$scope);
     	};
 
     	$$self.$capture_state = () => ({
@@ -58444,7 +58460,7 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [width, height, tilt, focus, projection, $$scope, $$slots];
+    	return [width, height, tilt, focus, $$scope, $$slots];
     }
 
     class Map$1 extends SvelteComponentDev {
@@ -58493,7 +58509,7 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Line.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Line.svelte generated by Svelte v3.24.1 */
 
     const { console: console_1 } = globals;
     const file$3 = "src/shapes/Line.svelte";
@@ -58569,7 +58585,7 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Line", $$slots, []);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("from" in $$props) $$invalidate(2, from = $$props.from);
     		if ("to" in $$props) $$invalidate(3, to = $$props.to);
     		if ("color" in $$props) $$invalidate(0, color = $$props.color);
@@ -58643,7 +58659,7 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Graticule.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Graticule.svelte generated by Svelte v3.24.1 */
     const file$4 = "src/shapes/Graticule.svelte";
 
     function get_each_context(ctx, list, i) {
@@ -58782,7 +58798,7 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Graticule", $$slots, []);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("lat" in $$props) $$invalidate(3, lat = $$props.lat);
     		if ("lon" in $$props) $$invalidate(4, lon = $$props.lon);
     		if ("color" in $$props) $$invalidate(0, color = $$props.color);
@@ -58854,7 +58870,7 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Dot.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Dot.svelte generated by Svelte v3.24.1 */
     const file$5 = "src/shapes/Dot.svelte";
 
     function create_fragment$5(ctx) {
@@ -58937,7 +58953,7 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Dot", $$slots, []);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("at" in $$props) $$invalidate(4, at = $$props.at);
     		if ("radius" in $$props) $$invalidate(5, radius = $$props.radius);
     		if ("opacity" in $$props) $$invalidate(1, opacity = $$props.opacity);
@@ -59041,7 +59057,7 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Latitude.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Latitude.svelte generated by Svelte v3.24.1 */
     const file$6 = "src/shapes/Latitude.svelte";
 
     function create_fragment$6(ctx) {
@@ -59128,7 +59144,7 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Latitude", $$slots, []);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("at" in $$props) $$invalidate(4, at = $$props.at);
     		if ("color" in $$props) $$invalidate(0, color = $$props.color);
     		if ("label" in $$props) $$invalidate(1, label = $$props.label);
@@ -59215,7 +59231,7 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Longitude.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Longitude.svelte generated by Svelte v3.24.1 */
     const file$7 = "src/shapes/Longitude.svelte";
 
     function create_fragment$7(ctx) {
@@ -59295,7 +59311,7 @@ var app = (function () {
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Longitude", $$slots, []);
 
-    	$$self.$set = $$props => {
+    	$$self.$$set = $$props => {
     		if ("at" in $$props) $$invalidate(3, at = $$props.at);
     		if ("color" in $$props) $$invalidate(0, color = $$props.color);
     		if ("label" in $$props) $$invalidate(1, label = $$props.label);
@@ -59371,13 +59387,17 @@ var app = (function () {
     	}
     }
 
-    /* src/shapes/Countries.svelte generated by Svelte v3.22.2 */
+    /* src/shapes/Countries.svelte generated by Svelte v3.24.1 */
 
     function create_fragment$8(ctx) {
+    	let shape;
     	let current;
 
-    	const shape = new Shape({
-    			props: { shape: countries$1 },
+    	shape = new Shape({
+    			props: {
+    				shape: countries$1,
+    				stroke: /*color*/ ctx[0]
+    			},
     			$$inline: true
     		});
 
@@ -59392,7 +59412,11 @@ var app = (function () {
     			mount_component(shape, target, anchor);
     			current = true;
     		},
-    		p: noop,
+    		p: function update(ctx, [dirty]) {
+    			const shape_changes = {};
+    			if (dirty & /*color*/ 1) shape_changes.stroke = /*color*/ ctx[0];
+    			shape.$set(shape_changes);
+    		},
     		i: function intro(local) {
     			if (current) return;
     			transition_in(shape.$$.fragment, local);
@@ -59419,7 +59443,8 @@ var app = (function () {
     }
 
     function instance$8($$self, $$props, $$invalidate) {
-    	const writable_props = [];
+    	let { color = "grey" } = $$props;
+    	const writable_props = ["color"];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Countries> was created with unknown prop '${key}'`);
@@ -59427,14 +59452,28 @@ var app = (function () {
 
     	let { $$slots = {}, $$scope } = $$props;
     	validate_slots("Countries", $$slots, []);
-    	$$self.$capture_state = () => ({ Shape, topojson, countries: countries$1 });
-    	return [];
+
+    	$$self.$$set = $$props => {
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    	};
+
+    	$$self.$capture_state = () => ({ Shape, topojson, color, countries: countries$1 });
+
+    	$$self.$inject_state = $$props => {
+    		if ("color" in $$props) $$invalidate(0, color = $$props.color);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	return [color];
     }
 
     class Countries extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$8, create_fragment$8, safe_not_equal, {});
+    		init(this, options, instance$8, create_fragment$8, safe_not_equal, { color: 0 });
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -59443,2284 +59482,36 @@ var app = (function () {
     			id: create_fragment$8.name
     		});
     	}
+
+    	get color() {
+    		throw new Error("<Countries>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<Countries>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
     }
 
-    /**
-     *  Point2D.js
-     *  @module Point2D
-     *  @copyright 2001-2019 Kevin Lindsey
-     */
-
-    /**
-     *  Point2D
-     *
-     *  @memberof module:kld-affine
-     */
-    class Point2D {
-        /**
-         *  Point2D
-         *
-         *  @param {number} x
-         *  @param {number} y
-         *  @returns {module:kld-affine.Point2D}
-         */
-        constructor(x = 0, y = 0) {
-            this.x = x;
-            this.y = y;
-        }
-
-        /**
-         *  clone
-         *
-         *  @returns {module:kld-affine.Point2D}
-         */
-        clone() {
-            return new this.constructor(this.x, this.y);
-        }
-
-        /**
-         *  add
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @returns {module:kld-affine.Point2D}
-         */
-        add(that) {
-            return new this.constructor(this.x + that.x, this.y + that.y);
-        }
-
-        /**
-         *  subtract
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @returns {module:kld-affine.Point2D}
-         */
-        subtract(that) {
-            return new this.constructor(this.x - that.x, this.y - that.y);
-        }
-
-        /**
-         *  multiply
-         *
-         *  @param {number} scalar
-         *  @returns {module:kld-affine.Point2D}
-         */
-        multiply(scalar) {
-            return new this.constructor(this.x * scalar, this.y * scalar);
-        }
-
-        /**
-         *  divide
-         *
-         *  @param {number} scalar
-         *  @returns {module:kld-affine.Point2D}
-         */
-        divide(scalar) {
-            return new this.constructor(this.x / scalar, this.y / scalar);
-        }
-
-        /**
-         *  equals
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @returns {boolean}
-         */
-        equals(that) {
-            return (this.x === that.x && this.y === that.y);
-        }
-
-        /**
-         *  precisionEquals
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @param {number} precision
-         *  @returns {boolean}
-         */
-        precisionEquals(that, precision) {
-            return (
-                Math.abs(this.x - that.x) < precision &&
-                Math.abs(this.y - that.y) < precision
-            );
-        }
-
-        // utility methods
-
-        /**
-         *  lerp
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @param {number} t
-         *  @returns {module:kld-affine.Point2D}
-         */
-        lerp(that, t) {
-            const omt = 1.0 - t;
-
-            return new this.constructor(
-                this.x * omt + that.x * t,
-                this.y * omt + that.y * t
-            );
-        }
-
-        /**
-         *  distanceFrom
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @returns {number}
-         */
-        distanceFrom(that) {
-            const dx = this.x - that.x;
-            const dy = this.y - that.y;
-
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        /**
-         *  min
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @returns {number}
-         */
-        min(that) {
-            return new this.constructor(
-                Math.min(this.x, that.x),
-                Math.min(this.y, that.y)
-            );
-        }
-
-        /**
-         *  max
-         *
-         *  @param {module:kld-affine.Point2D} that
-         *  @returns {number}
-         */
-        max(that) {
-            return new this.constructor(
-                Math.max(this.x, that.x),
-                Math.max(this.y, that.y)
-            );
-        }
-
-        /**
-         *  transform
-         *
-         *  @param {module:kld-affine.Matrix2D} matrix
-         *  @returns {module:kld-affine.Point2D}
-         */
-        transform(matrix) {
-            return new this.constructor(
-                matrix.a * this.x + matrix.c * this.y + matrix.e,
-                matrix.b * this.x + matrix.d * this.y + matrix.f
-            );
-        }
-
-        /**
-         *  toString
-         *
-         *  @returns {string}
-         */
-        toString() {
-            return `point(${this.x},${this.y})`;
-        }
-    }
-
-    /**
-     *  Vector2D.js
-     *  @module Vector2D
-     *  @copyright 2001-2019 Kevin Lindsey
-     */
-
-    /**
-     *  Vector2D
-     *
-     *  @memberof module:kld-affine
-     */
-    class Vector2D {
-        /**
-         *  Vector2D
-         *
-         *  @param {number} x
-         *  @param {number} y
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        constructor(x = 0, y = 0) {
-            this.x = x;
-            this.y = y;
-        }
-
-        /**
-         *  fromPoints
-         *
-         *  @param {module:kld-affine.Point2D} p1
-         *  @param {module:kld-affine.Point2D} p2
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        static fromPoints(p1, p2) {
-            return new Vector2D(
-                p2.x - p1.x,
-                p2.y - p1.y
-            );
-        }
-
-        /**
-         *  length
-         *
-         *  @returns {number}
-         */
-        length() {
-            return Math.sqrt(this.x * this.x + this.y * this.y);
-        }
-
-        /**
-         *  magnitude
-         *
-         *  @returns {number}
-         */
-        magnitude() {
-            return this.x * this.x + this.y * this.y;
-        }
-
-        /**
-         *  dot
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {number}
-         */
-        dot(that) {
-            return this.x * that.x + this.y * that.y;
-        }
-
-        /**
-         *  cross
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {number}
-         */
-        cross(that) {
-            return this.x * that.y - this.y * that.x;
-        }
-
-        /**
-         *  determinant
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {number}
-         */
-        determinant(that) {
-            return this.x * that.y - this.y * that.x;
-        }
-
-        /**
-         *  unit
-         *
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        unit() {
-            return this.divide(this.length());
-        }
-
-        /**
-         *  add
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        add(that) {
-            return new this.constructor(this.x + that.x, this.y + that.y);
-        }
-
-        /**
-         *  subtract
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        subtract(that) {
-            return new this.constructor(this.x - that.x, this.y - that.y);
-        }
-
-        /**
-         *  multiply
-         *
-         *  @param {number} scalar
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        multiply(scalar) {
-            return new this.constructor(this.x * scalar, this.y * scalar);
-        }
-
-        /**
-         *  divide
-         *
-         *  @param {number} scalar
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        divide(scalar) {
-            return new this.constructor(this.x / scalar, this.y / scalar);
-        }
-
-        /**
-         *  angleBetween
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {number}
-         */
-        angleBetween(that) {
-            let cos = this.dot(that) / (this.length() * that.length());
-            cos = Math.max(-1, Math.min(cos, 1));
-            const radians = Math.acos(cos);
-
-            return (this.cross(that) < 0.0) ? -radians : radians;
-        }
-
-        /**
-         *  Find a vector is that is perpendicular to this vector
-         *
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        perp() {
-            return new this.constructor(-this.y, this.x);
-        }
-
-        /**
-         *  Find the component of the specified vector that is perpendicular to
-         *  this vector
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        perpendicular(that) {
-            return this.subtract(this.project(that));
-        }
-
-        /**
-         *  project
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        project(that) {
-            const percent = this.dot(that) / that.dot(that);
-
-            return that.multiply(percent);
-        }
-
-        /**
-         *  transform
-         *
-         *  @param {module:kld-affine.Matrix2D} matrix
-         *  @returns {module:kld-affine.Vector2D}
-         */
-        transform(matrix) {
-            return new this.constructor(
-                matrix.a * this.x + matrix.c * this.y,
-                matrix.b * this.x + matrix.d * this.y
-            );
-        }
-
-        /**
-         *  equals
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @returns {boolean}
-         */
-        equals(that) {
-            return (
-                this.x === that.x &&
-                this.y === that.y
-            );
-        }
-
-        /**
-         *  precisionEquals
-         *
-         *  @param {module:kld-affine.Vector2D} that
-         *  @param {number} precision
-         *  @returns {boolean}
-         */
-        precisionEquals(that, precision) {
-            return (
-                Math.abs(this.x - that.x) < precision &&
-                Math.abs(this.y - that.y) < precision
-            );
-        }
-
-        /**
-         *  toString
-         *
-         *  @returns {string}
-         */
-        toString() {
-            return `vector(${this.x},${this.y})`;
-        }
-    }
-
-    /**
-     *  Matrix2D.js
-     *  @module Matrix2D
-     *  @copyright 2001-2019 Kevin Lindsey
-     */
-
-    /**
-     *  Matrix2D
-     *
-     *  @memberof module:kld-affine
-     */
-    class Matrix2D {
-        /**
-         *  A 2D Matrix of the form:<br>
-         *  [a c e]<br>
-         *  [b d f]<br>
-         *  [0 0 1]<br>
-         *
-         *  @param {number} a
-         *  @param {number} b
-         *  @param {number} c
-         *  @param {number} d
-         *  @param {number} e
-         *  @param {number} f
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        constructor(a = 1, b = 0, c = 0, d = 1, e = 0, f = 0) {
-            this.a = a;
-            this.b = b;
-            this.c = c;
-            this.d = d;
-            this.e = e;
-            this.f = f;
-        }
-
-        /**
-         *  translation
-         *
-         *  @param {number} tx
-         *  @param {number} ty
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static translation(tx, ty) {
-            return new Matrix2D(1, 0, 0, 1, tx, ty);
-        }
-
-        /**
-         *  scaling
-         *
-         *  @param {number} scale
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static scaling(scale) {
-            return new Matrix2D(scale, 0, 0, scale, 0, 0);
-        }
-
-        /**
-         *  scalingAt
-         *
-         *  @param {number} scale
-         *  @param {module:kld-affine.Point2D} center
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static scalingAt(scale, center) {
-            return new Matrix2D(
-                scale,
-                0,
-                0,
-                scale,
-                center.x - center.x * scale,
-                center.y - center.y * scale
-            );
-        }
-
-        /**
-         *  nonUniformScaling
-         *
-         *  @param {number} scaleX
-         *  @param {number} scaleY
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static nonUniformScaling(scaleX, scaleY) {
-            return new Matrix2D(scaleX, 0, 0, scaleY, 0, 0);
-        }
-
-        /**
-         *  nonUniformScalingAt
-         *
-         *  @param {number} scaleX
-         *  @param {number} scaleY
-         *  @param {module:kld-affine.Point2D} center
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static nonUniformScalingAt(scaleX, scaleY, center) {
-            return new Matrix2D(
-                scaleX,
-                0,
-                0,
-                scaleY,
-                center.x - center.x * scaleX,
-                center.y - center.y * scaleY
-            );
-        }
-
-        /**
-         *  rotation
-         *
-         *  @param {number} radians
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static rotation(radians) {
-            const c = Math.cos(radians);
-            const s = Math.sin(radians);
-
-            return new Matrix2D(c, s, -s, c, 0, 0);
-        }
-
-        /**
-         *  rotationAt
-         *
-         *  @param {number} radians
-         *  @param {module:kld-affine.Point2D} center
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static rotationAt(radians, center) {
-            const c = Math.cos(radians);
-            const s = Math.sin(radians);
-
-            return new Matrix2D(
-                c,
-                s,
-                -s,
-                c,
-                center.x - center.x * c + center.y * s,
-                center.y - center.y * c - center.x * s
-            );
-        }
-
-        /**
-         *  rotationFromVector
-         *
-         *  @param {module:kld-affine.Vector2D} vector
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static rotationFromVector(vector) {
-            const unit = vector.unit();
-            const c = unit.x; // cos
-            const s = unit.y; // sin
-
-            return new Matrix2D(c, s, -s, c, 0, 0);
-        }
-
-        /**
-         *  xFlip
-         *
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static xFlip() {
-            return new Matrix2D(-1, 0, 0, 1, 0, 0);
-        }
-
-        /**
-         *  yFlip
-         *
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static yFlip() {
-            return new Matrix2D(1, 0, 0, -1, 0, 0);
-        }
-
-        /**
-         *  xSkew
-         *
-         *  @param {number} radians
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static xSkew(radians) {
-            const t = Math.tan(radians);
-
-            return new Matrix2D(1, 0, t, 1, 0, 0);
-        }
-
-        /**
-         *  ySkew
-         *
-         *  @param {number} radians
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        static ySkew(radians) {
-            const t = Math.tan(radians);
-
-            return new Matrix2D(1, t, 0, 1, 0, 0);
-        }
-
-        /**
-         *  multiply
-         *
-         *  @param {module:kld-affine.Matrix2D} that
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        multiply(that) {
-            if (this.isIdentity()) {
-                return that;
-            }
-
-            if (that.isIdentity()) {
-                return this;
-            }
-
-            return new this.constructor(
-                this.a * that.a + this.c * that.b,
-                this.b * that.a + this.d * that.b,
-                this.a * that.c + this.c * that.d,
-                this.b * that.c + this.d * that.d,
-                this.a * that.e + this.c * that.f + this.e,
-                this.b * that.e + this.d * that.f + this.f
-            );
-        }
-
-        /**
-         *  inverse
-         *
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        inverse() {
-            if (this.isIdentity()) {
-                return this;
-            }
-
-            const det1 = this.a * this.d - this.b * this.c;
-
-            if (det1 === 0.0) {
-                throw new Error("Matrix is not invertible");
-            }
-
-            const idet = 1.0 / det1;
-            const det2 = this.f * this.c - this.e * this.d;
-            const det3 = this.e * this.b - this.f * this.a;
-
-            return new this.constructor(
-                this.d * idet,
-                -this.b * idet,
-                -this.c * idet,
-                this.a * idet,
-                det2 * idet,
-                det3 * idet
-            );
-        }
-
-        /**
-         *  translate
-         *
-         *  @param {number} tx
-         *  @param {number} ty
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        translate(tx, ty) {
-            return new this.constructor(
-                this.a,
-                this.b,
-                this.c,
-                this.d,
-                this.a * tx + this.c * ty + this.e,
-                this.b * tx + this.d * ty + this.f
-            );
-        }
-
-        /**
-         *  scale
-         *
-         *  @param {number} scale
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        scale(scale) {
-            return new this.constructor(
-                this.a * scale,
-                this.b * scale,
-                this.c * scale,
-                this.d * scale,
-                this.e,
-                this.f
-            );
-        }
-
-        /**
-         *  scaleAt
-         *
-         *  @param {number} scale
-         *  @param {module:kld-affine.Point2D} center
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        scaleAt(scale, center) {
-            const dx = center.x - scale * center.x;
-            const dy = center.y - scale * center.y;
-
-            return new this.constructor(
-                this.a * scale,
-                this.b * scale,
-                this.c * scale,
-                this.d * scale,
-                this.a * dx + this.c * dy + this.e,
-                this.b * dx + this.d * dy + this.f
-            );
-        }
-
-        /**
-         *  scaleNonUniform
-         *
-         *  @param {number} scaleX
-         *  @param {number} scaleY
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        scaleNonUniform(scaleX, scaleY) {
-            return new this.constructor(
-                this.a * scaleX,
-                this.b * scaleX,
-                this.c * scaleY,
-                this.d * scaleY,
-                this.e,
-                this.f
-            );
-        }
-
-        /**
-         *  scaleNonUniformAt
-         *
-         *  @param {number} scaleX
-         *  @param {number} scaleY
-         *  @param {module:kld-affine.Point2D} center
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        scaleNonUniformAt(scaleX, scaleY, center) {
-            const dx = center.x - scaleX * center.x;
-            const dy = center.y - scaleY * center.y;
-
-            return new this.constructor(
-                this.a * scaleX,
-                this.b * scaleX,
-                this.c * scaleY,
-                this.d * scaleY,
-                this.a * dx + this.c * dy + this.e,
-                this.b * dx + this.d * dy + this.f
-            );
-        }
-
-        /**
-         *  rotate
-         *
-         *  @param {number} radians
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        rotate(radians) {
-            const c = Math.cos(radians);
-            const s = Math.sin(radians);
-
-            return new this.constructor(
-                this.a * c + this.c * s,
-                this.b * c + this.d * s,
-                this.a * -s + this.c * c,
-                this.b * -s + this.d * c,
-                this.e,
-                this.f
-            );
-        }
-
-        /**
-         *  rotateAt
-         *
-         *  @param {number} radians
-         *  @param {module:kld-affine.Point2D} center
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        rotateAt(radians, center) {
-            const cos = Math.cos(radians);
-            const sin = Math.sin(radians);
-            const cx = center.x;
-            const cy = center.y;
-
-            const a = this.a * cos + this.c * sin;
-            const b = this.b * cos + this.d * sin;
-            const c = this.c * cos - this.a * sin;
-            const d = this.d * cos - this.b * sin;
-
-            return new this.constructor(
-                a,
-                b,
-                c,
-                d,
-                (this.a - a) * cx + (this.c - c) * cy + this.e,
-                (this.b - b) * cx + (this.d - d) * cy + this.f
-            );
-        }
-
-        /**
-         *  rotateFromVector
-         *
-         *  @param {module:kld-affine.Vector2D} vector
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        rotateFromVector(vector) {
-            const unit = vector.unit();
-            const c = unit.x; // cos
-            const s = unit.y; // sin
-
-            return new this.constructor(
-                this.a * c + this.c * s,
-                this.b * c + this.d * s,
-                this.a * -s + this.c * c,
-                this.b * -s + this.d * c,
-                this.e,
-                this.f
-            );
-        }
-
-        /**
-         *  flipX
-         *
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        flipX() {
-            return new this.constructor(
-                -this.a,
-                -this.b,
-                this.c,
-                this.d,
-                this.e,
-                this.f
-            );
-        }
-
-        /**
-         *  flipY
-         *
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        flipY() {
-            return new this.constructor(
-                this.a,
-                this.b,
-                -this.c,
-                -this.d,
-                this.e,
-                this.f
-            );
-        }
-
-        /**
-         *  skewX
-         *
-         *  @param {number} radians
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        skewX(radians) {
-            const t = Math.tan(radians);
-
-            return new this.constructor(
-                this.a,
-                this.b,
-                this.c + this.a * t,
-                this.d + this.b * t,
-                this.e,
-                this.f
-            );
-        }
-
-        // TODO: skewXAt
-
-        /**
-         *  skewY
-         *
-         *  @param {number} radians
-         *  @returns {module:kld-affine.Matrix2D}
-         */
-        skewY(radians) {
-            const t = Math.tan(radians);
-
-            return new this.constructor(
-                this.a + this.c * t,
-                this.b + this.d * t,
-                this.c,
-                this.d,
-                this.e,
-                this.f
-            );
-        }
-
-        // TODO: skewYAt
-
-        /**
-         *  isIdentity
-         *
-         *  @returns {boolean}
-         */
-        isIdentity() {
-            return (
-                this.a === 1.0 &&
-                this.b === 0.0 &&
-                this.c === 0.0 &&
-                this.d === 1.0 &&
-                this.e === 0.0 &&
-                this.f === 0.0
-            );
-        }
-
-        /**
-         *  isInvertible
-         *
-         *  @returns {boolean}
-         */
-        isInvertible() {
-            return this.a * this.d - this.b * this.c !== 0.0;
-        }
-
-        /**
-         *  getScale
-         *
-         *  @returns {{ scaleX: number, scaleY: number }}
-         */
-        getScale() {
-            return {
-                scaleX: Math.sqrt(this.a * this.a + this.c * this.c),
-                scaleY: Math.sqrt(this.b * this.b + this.d * this.d)
-            };
-        }
-
-        /**
-         *  Calculates matrix Singular Value Decomposition
-         *
-         *  The resulting matrices — translation, rotation, scale, and rotation0 — return
-         *  this matrix when they are multiplied together in the listed order
-         *
-         *  @see Jim Blinn's article {@link http://dx.doi.org/10.1109/38.486688}
-         *  @see {@link http://math.stackexchange.com/questions/861674/decompose-a-2d-arbitrary-transform-into-only-scaling-and-rotation}
-         *
-         *  @returns {{
-         *    translation: module:kld-affine.Matrix2D,
-         *    rotation: module:kld-affine.Matrix2D,
-         *    scale: module:kld-affine.Matrix2D,
-         *    rotation0: module:kld-affine.Matrix2D
-         *  }}
-         */
-        getDecomposition() {
-            const E = (this.a + this.d) * 0.5;
-            const F = (this.a - this.d) * 0.5;
-            const G = (this.b + this.c) * 0.5;
-            const H = (this.b - this.c) * 0.5;
-
-            const Q = Math.sqrt(E * E + H * H);
-            const R = Math.sqrt(F * F + G * G);
-            const scaleX = Q + R;
-            const scaleY = Q - R;
-
-            const a1 = Math.atan2(G, F);
-            const a2 = Math.atan2(H, E);
-            const theta = (a2 - a1) * 0.5;
-            const phi = (a2 + a1) * 0.5;
-
-            return {
-                translation: this.constructor.translation(this.e, this.f),
-                rotation: this.constructor.rotation(phi),
-                scale: this.constructor.nonUniformScaling(scaleX, scaleY),
-                rotation0: this.constructor.rotation(theta)
-            };
-        }
-
-        /**
-         *  equals
-         *
-         *  @param {module:kld-affine.Matrix2D} that
-         *  @returns {boolean}
-         */
-        equals(that) {
-            return (
-                this.a === that.a &&
-                this.b === that.b &&
-                this.c === that.c &&
-                this.d === that.d &&
-                this.e === that.e &&
-                this.f === that.f
-            );
-        }
-
-        /**
-         *  precisionEquals
-         *
-         *  @param {module:kld-affine.Matrix2D} that
-         *  @param {number} precision
-         *  @returns {boolean}
-         */
-        precisionEquals(that, precision) {
-            return (
-                Math.abs(this.a - that.a) < precision &&
-                Math.abs(this.b - that.b) < precision &&
-                Math.abs(this.c - that.c) < precision &&
-                Math.abs(this.d - that.d) < precision &&
-                Math.abs(this.e - that.e) < precision &&
-                Math.abs(this.f - that.f) < precision
-            );
-        }
-
-        /**
-         *  toString
-         *
-         *  @returns {string}
-         */
-        toString() {
-            return `matrix(${this.a},${this.b},${this.c},${this.d},${this.e},${this.f})`;
-        }
-    }
-
-    /**
-     *  Identity matrix
-     *
-     *  @returns {module:kld-affine.Matrix2D}
-     */
-    Matrix2D.IDENTITY = new Matrix2D();
-    Matrix2D.IDENTITY.isIdentity = () => true;
-
-    /**
-     *  PathLexeme.js
-     *
-     *  @copyright 2002, 2013 Kevin Lindsey
-     *  @module PathLexeme
-     */
-
-    /**
-     *  PathLexeme
-     */
-    class PathLexeme {
-        /**
-         *  PathLexeme
-         *
-         *  @param {number} type
-         *  @param {string} text
-         */
-        constructor(type, text) {
-            this.type = type;
-            this.text = text;
-        }
-
-        /**
-         *  Determine if this lexeme is of the given type
-         *
-         *  @param {number} type
-         *  @returns {boolean}
-         */
-        typeis(type) {
-            return this.type === type;
-        }
-    }
-
-    /*
-     * token type enumerations
-     */
-    PathLexeme.UNDEFINED = 0;
-    PathLexeme.COMMAND = 1;
-    PathLexeme.NUMBER = 2;
-    PathLexeme.EOD = 3;
-
-    /**
-     *  PathLexer.js
-     *
-     *  @copyright 2003, 2013 Kevin Lindsey
-     *  @module PathLexer
-     */
-
-    /**
-     *  Create a new instance of PathLexer
-     */
-    class PathLexer {
-        /**
-         *  @param {string} [pathData]
-         */
-        constructor(pathData) {
-            if (pathData === null || pathData === undefined) {
-                pathData = "";
-            }
-
-            this.setPathData(pathData);
-        }
-
-        /**
-         *  setPathData
-         *
-         *  @param {string} pathData
-         */
-        setPathData(pathData) {
-            if (typeof pathData !== "string") {
-                throw new TypeError("The first parameter must be a string");
-            }
-
-            this._pathData = pathData;
-        }
-
-        /**
-         *  getNextToken
-         *
-         *  @returns {PathLexeme}
-         */
-        getNextToken() {
-            let result = null;
-            let d = this._pathData;
-
-            while (result === null) {
-                if (d === null || d === "") {
-                    result = new PathLexeme(PathLexeme.EOD, "");
-                }
-                else if (d.match(/^([ \t\r\n,]+)/)) {
-                    d = d.substr(RegExp.$1.length);
-                }
-                else if (d.match(/^([AaCcHhLlMmQqSsTtVvZz])/)) {
-                    result = new PathLexeme(PathLexeme.COMMAND, RegExp.$1);
-                    d = d.substr(RegExp.$1.length);
-                }
-                /* eslint-disable-next-line unicorn/no-unsafe-regex */
-                else if (d.match(/^(([-+]?\d+(\.\d*)?|[-+]?\.\d+)([eE][-+]?\d+)?)/)) {
-                    result = new PathLexeme(PathLexeme.NUMBER, RegExp.$1);
-                    d = d.substr(RegExp.$1.length);
-                }
-                else {
-                    throw new SyntaxError(`Unrecognized path data: ${d}`);
-                }
-            }
-
-            this._pathData = d;
-
-            return result;
-        }
-    }
-
-    /**
-     *  PathParser.js
-     *
-     *  @copyright 2003, 2017 Kevin Lindsey
-     *  @module PathParser
-     */
-
-    const BOP = "BOP";
-
-    /**
-     *  PathParser
-     */
-    class PathParser {
-        /**
-         * constructor
-         */
-        constructor() {
-            this._lexer = new PathLexer();
-            this._handler = null;
-        }
-
-        /**
-         *  parseData
-         *
-         *  @param {string} pathData
-         *  @throws {Error}
-         */
-        parseData(pathData) {
-            if (typeof pathData !== "string") {
-                throw new TypeError(`The first parameter must be a string: ${pathData}`);
-            }
-
-            // begin parse
-            if (this._handler !== null && typeof this._handler.beginParse === "function") {
-                this._handler.beginParse();
-            }
-
-            // pass the pathData to the lexer
-            const lexer = this._lexer;
-
-            lexer.setPathData(pathData);
-
-            // set mode to signify new path - Beginning Of Path
-            let mode = BOP;
-
-            // Process all tokens
-            let lastToken = null;
-            let token = lexer.getNextToken();
-
-            while (token.typeis(PathLexeme.EOD) === false) {
-                let parameterCount;
-                const params = [];
-
-                // process current token
-                switch (token.type) {
-                    case PathLexeme.COMMAND:
-                        if (mode === BOP && token.text !== "M" && token.text !== "m") {
-                            throw new SyntaxError(`New paths must begin with a moveto command. Found '${token.text}'`);
-                        }
-
-                        // Set new parsing mode
-                        mode = token.text;
-
-                        // Get count of numbers that must follow this command
-                        parameterCount = PathParser.PARAMCOUNT[token.text.toUpperCase()];
-
-                        // Advance past command token
-                        token = lexer.getNextToken();
-                        break;
-
-                    case PathLexeme.NUMBER:
-                        // Most commands allow you to keep repeating parameters
-                        // without specifying the command again.  We just assume
-                        // that is the case and do nothing since the mode remains
-                        // the same
-
-                        if (mode === BOP) {
-                            throw new SyntaxError(`New paths must begin with a moveto command. Found '${token.text}'`);
-                        }
-                        else {
-                            parameterCount = PathParser.PARAMCOUNT[mode.toUpperCase()];
-                        }
-                        break;
-
-                    default:
-                        throw new SyntaxError(`Unrecognized command type: ${token.type}`);
-                }
-
-                // Get parameters
-                for (let i = 0; i < parameterCount; i++) {
-                    switch (token.type) {
-                        case PathLexeme.COMMAND:
-                            throw new SyntaxError(`Parameter must be a number. Found '${token.text}'`);
-
-                        case PathLexeme.NUMBER:
-                            // convert current parameter to a float and add to
-                            // parameter list
-                            params[i] = parseFloat(token.text);
-                            break;
-
-                        case PathLexeme.EOD:
-                            throw new SyntaxError("Unexpected end of string");
-
-                        default:
-                            throw new SyntaxError(`Unrecognized parameter type. Found type '${token.type}'`);
-                    }
-
-                    token = lexer.getNextToken();
-                }
-
-                // fire handler
-                if (this._handler !== null) {
-                    const handler = this._handler;
-                    const methodName = PathParser.METHODNAME[mode];
-
-                    // convert types for arcs
-                    if (mode === "a" || mode === "A") {
-                        params[3] = params[3] !== 0;
-                        params[4] = params[4] !== 0;
-                    }
-
-                    if (handler !== null && typeof handler[methodName] === "function") {
-                        handler[methodName](...params);
-                    }
-                }
-
-                // Lineto's follow moveto when no command follows moveto params.  Go
-                // ahead and set the mode just in case no command follows the moveto
-                // command
-                switch (mode) {
-                    case "M":
-                        mode = "L";
-                        break;
-                    case "m":
-                        mode = "l";
-                        break;
-                    case "Z":
-                    case "z":
-                        mode = "BOP";
-                        break;
-                        // ignore for now
-                }
-
-                if (token === lastToken) {
-                    throw new SyntaxError(`Parser stalled on '${token.text}'`);
-                }
-                else {
-                    lastToken = token;
-                }
-            }
-
-            // end parse
-            if (this._handler !== null && typeof this._handler.endParse === "function") {
-                this._handler.endParse();
-            }
-        }
-
-        /**
-         *  setHandler
-         *
-         *  @param {Object} handler
-         */
-        setHandler(handler) {
-            this._handler = handler;
-        }
-    }
-
-    /*
-     * class constants
-     */
-    PathParser.PARAMCOUNT = {
-        A: 7,
-        C: 6,
-        H: 1,
-        L: 2,
-        M: 2,
-        Q: 4,
-        S: 4,
-        T: 2,
-        V: 1,
-        Z: 0
-    };
-    PathParser.METHODNAME = {
-        A: "arcAbs",
-        a: "arcRel",
-        C: "curvetoCubicAbs",
-        c: "curvetoCubicRel",
-        H: "linetoHorizontalAbs",
-        h: "linetoHorizontalRel",
-        L: "linetoAbs",
-        l: "linetoRel",
-        M: "movetoAbs",
-        m: "movetoRel",
-        Q: "curvetoQuadraticAbs",
-        q: "curvetoQuadraticRel",
-        S: "curvetoCubicSmoothAbs",
-        s: "curvetoCubicSmoothRel",
-        T: "curvetoQuadraticSmoothAbs",
-        t: "curvetoQuadraticSmoothRel",
-        V: "linetoVerticalAbs",
-        v: "linetoVerticalRel",
-        Z: "closePath",
-        z: "closePath"
-    };
-
-    /**
-     *  PathHandler.js
-     *
-     *  @copyright 2017 Kevin Lindsey
-     */
-
-    const TWO_PI = 2.0 * Math.PI;
-
-    /**
-     * Based on the SVG 1.1 specification, Appendix F: Implementation Requirements,
-     * Section F.6 "Elliptical arc implementation notes"
-     * {@see https://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes}
-     *
-     * @param {module:kld-affine.Point2D} startPoint
-     * @param {module:kld-affine.Point2D} endPoint
-     * @param {number} rx
-     * @param {number} ry
-     * @param {number} angle
-     * @param {boolean} arcFlag
-     * @param {boolean} sweepFlag
-     * @returns {Array}
-     */
-    function getArcParameters(startPoint, endPoint, rx, ry, angle, arcFlag, sweepFlag) {
-        angle = angle * Math.PI / 180;
-
-        const c = Math.cos(angle);
-        const s = Math.sin(angle);
-        const TOLERANCE = 1e-6;
-
-        // Section (F.6.5.1)
-        const halfDiff = startPoint.subtract(endPoint).multiply(0.5);
-        const x1p = halfDiff.x * c + halfDiff.y * s;
-        const y1p = halfDiff.x * -s + halfDiff.y * c;
-
-        // Section (F.6.6.1)
-        rx = Math.abs(rx);
-        ry = Math.abs(ry);
-
-        // Section (F.6.6.2)
-        const x1px1p = x1p * x1p;
-        const y1py1p = y1p * y1p;
-        const lambda = (x1px1p / (rx * rx)) + (y1py1p / (ry * ry));
-
-        // Section (F.6.6.3)
-        if (lambda > 1) {
-            const factor = Math.sqrt(lambda);
-
-            rx *= factor;
-            ry *= factor;
-        }
-
-        // Section (F.6.5.2)
-        const rxrx = rx * rx;
-        const ryry = ry * ry;
-        const rxy1 = rxrx * y1py1p;
-        const ryx1 = ryry * x1px1p;
-
-        let factor = (rxrx * ryry - rxy1 - ryx1) / (rxy1 + ryx1);
-
-        if (Math.abs(factor) < TOLERANCE) {
-            factor = 0;
-        }
-
-        let sq = Math.sqrt(factor);
-
-        if (arcFlag === sweepFlag) {
-            sq = -sq;
-        }
-
-        // Section (F.6.5.3)
-        const mid = startPoint.add(endPoint).multiply(0.5);
-        const cxp = sq * rx * y1p / ry;
-        const cyp = sq * -ry * x1p / rx;
-
-        // Section (F.6.5.5 - F.6.5.6)
-        const xcr1 = (x1p - cxp) / rx;
-        const xcr2 = (x1p + cxp) / rx;
-        const ycr1 = (y1p - cyp) / ry;
-        const ycr2 = (y1p + cyp) / ry;
-
-        const theta1 = new Vector2D(1, 0).angleBetween(new Vector2D(xcr1, ycr1));
-        // let deltaTheta = normalizeAngle(new Vector2D(xcr1, ycr1).angleBetween(new Vector2D(-xcr2, -ycr2)));
-        let deltaTheta = new Vector2D(xcr1, ycr1).angleBetween(new Vector2D(-xcr2, -ycr2));
-
-        if (sweepFlag === false) {
-            deltaTheta -= TWO_PI;
-        }
-
-        return [
-            cxp * c - cyp * s + mid.x,
-            cxp * s + cyp * c + mid.y,
-            rx,
-            ry,
-            theta1,
-            theta1 + deltaTheta
-        ];
-    }
-
-    /**
-     *  PathHandler
-     */
-    class PathHandler {
-        /**
-         * PathHandler
-         *
-         * @param {ShapeInfo} shapeCreator
-         */
-        constructor(shapeCreator) {
-            this.shapeCreator = shapeCreator;
-            this.shapes = [];
-            this.firstX = null;
-            this.firstY = null;
-            this.lastX = null;
-            this.lastY = null;
-            this.lastCommand = null;
-        }
-
-        /**
-         * beginParse
-         */
-        beginParse() {
-            // zero out the sub-path array
-            this.shapes = [];
-
-            // clear firstX, firstY, lastX, and lastY
-            this.firstX = null;
-            this.firstY = null;
-            this.lastX = null;
-            this.lastY = null;
-
-            // need to remember last command type to determine how to handle the
-            // relative Bezier commands
-            this.lastCommand = null;
-        }
-
-        /**
-         *  addShape
-         *
-         *  @param {ShapeInfo} shape
-         */
-        addShape(shape) {
-            this.shapes.push(shape);
-        }
-
-        /**
-         *  arcAbs - A
-         *
-         *  @param {number} rx
-         *  @param {number} ry
-         *  @param {number} xAxisRotation
-         *  @param {boolean} arcFlag
-         *  @param {boolean} sweepFlag
-         *  @param {number} x
-         *  @param {number} y
-         */
-        arcAbs(rx, ry, xAxisRotation, arcFlag, sweepFlag, x, y) {
-            if (rx === 0 || ry === 0) {
-                this.addShape(this.shapeCreator.line(
-                    this.lastX, this.lastY,
-                    x, y
-                ));
-            }
-            else {
-                const arcParameters = getArcParameters(
-                    new Point2D(this.lastX, this.lastY),
-                    new Point2D(x, y),
-                    rx, ry,
-                    xAxisRotation,
-                    arcFlag, sweepFlag
-                );
-
-                this.addShape(this.shapeCreator.arc(...arcParameters));
-            }
-
-            this.lastCommand = "A";
-            this.lastX = x;
-            this.lastY = y;
-        }
-
-        /**
-         *  arcRel - a
-         *
-         *  @param {number} rx
-         *  @param {number} ry
-         *  @param {number} xAxisRotation
-         *  @param {boolean} arcFlag
-         *  @param {boolean} sweepFlag
-         *  @param {number} x
-         *  @param {number} y
-         */
-        arcRel(rx, ry, xAxisRotation, arcFlag, sweepFlag, x, y) {
-            if (rx === 0 || ry === 0) {
-                this.addShape(this.shapeCreator.line(
-                    this.lastX, this.lastY,
-                    this.lastX + x, this.lastY + y
-                ));
-            }
-            else {
-                const arcParameters = getArcParameters(
-                    new Point2D(this.lastX, this.lastY),
-                    new Point2D(this.lastX + x, this.lastY + y),
-                    rx, ry,
-                    xAxisRotation,
-                    arcFlag, sweepFlag
-                );
-
-                this.addShape(this.shapeCreator.arc(...arcParameters));
-            }
-
-            this.lastCommand = "a";
-            this.lastX += x;
-            this.lastY += y;
-        }
-
-        /**
-         *  curvetoCubicAbs - C
-         *
-         *  @param {number} x1
-         *  @param {number} y1
-         *  @param {number} x2
-         *  @param {number} y2
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoCubicAbs(x1, y1, x2, y2, x, y) {
-            this.addShape(this.shapeCreator.cubicBezier(
-                this.lastX, this.lastY,
-                x1, y1,
-                x2, y2,
-                x, y
-            ));
-
-            this.lastX = x;
-            this.lastY = y;
-            this.lastCommand = "C";
-        }
-
-        /**
-         *  curvetoCubicRel - c
-         *
-         *  @param {number} x1
-         *  @param {number} y1
-         *  @param {number} x2
-         *  @param {number} y2
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoCubicRel(x1, y1, x2, y2, x, y) {
-            this.addShape(this.shapeCreator.cubicBezier(
-                this.lastX, this.lastY,
-                this.lastX + x1, this.lastY + y1,
-                this.lastX + x2, this.lastY + y2,
-                this.lastX + x, this.lastY + y
-            ));
-
-            this.lastX += x;
-            this.lastY += y;
-            this.lastCommand = "c";
-        }
-
-        /**
-         *  linetoHorizontalAbs - H
-         *
-         *  @param {number} x
-         */
-        linetoHorizontalAbs(x) {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                x, this.lastY
-            ));
-
-            this.lastX = x;
-            this.lastCommand = "H";
-        }
-
-        /**
-         *  linetoHorizontalRel - h
-         *
-         *  @param {number} x
-         */
-        linetoHorizontalRel(x) {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                this.lastX + x, this.lastY
-            ));
-
-            this.lastX += x;
-            this.lastCommand = "h";
-        }
-
-        /**
-         *  linetoAbs - L
-         *
-         *  @param {number} x
-         *  @param {number} y
-         */
-        linetoAbs(x, y) {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                x, y
-            ));
-
-            this.lastX = x;
-            this.lastY = y;
-            this.lastCommand = "L";
-        }
-
-        /**
-         *  linetoRel - l
-         *
-         *  @param {number} x
-         *  @param {number} y
-         */
-        linetoRel(x, y) {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                this.lastX + x, this.lastY + y
-            ));
-
-            this.lastX += x;
-            this.lastY += y;
-            this.lastCommand = "l";
-        }
-
-        /**
-         *  movetoAbs - M
-         *
-         *  @param {number} x
-         *  @param {number} y
-         */
-        movetoAbs(x, y) {
-            this.firstX = x;
-            this.firstY = y;
-            this.lastX = x;
-            this.lastY = y;
-            this.lastCommand = "M";
-        }
-
-        /**
-         *  movetoRel - m
-         *
-         *  @param {number} x
-         *  @param {number} y
-         */
-        movetoRel(x, y) {
-            this.firstX += x;
-            this.firstY += y;
-            this.lastX += x;
-            this.lastY += y;
-            this.lastCommand = "m";
-        }
-
-        /**
-         *  curvetoQuadraticAbs - Q
-         *
-         *  @param {number} x1
-         *  @param {number} y1
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoQuadraticAbs(x1, y1, x, y) {
-            this.addShape(this.shapeCreator.quadraticBezier(
-                this.lastX, this.lastY,
-                x1, y1,
-                x, y
-            ));
-
-            this.lastX = x;
-            this.lastY = y;
-            this.lastCommand = "Q";
-        }
-
-        /**
-         *  curvetoQuadraticRel - q
-         *
-         *  @param {number} x1
-         *  @param {number} y1
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoQuadraticRel(x1, y1, x, y) {
-            this.addShape(this.shapeCreator.quadraticBezier(
-                this.lastX, this.lastY,
-                this.lastX + x1, this.lastY + y1,
-                this.lastX + x, this.lastY + y
-            ));
-
-            this.lastX += x;
-            this.lastY += y;
-            this.lastCommand = "q";
-        }
-
-        /**
-         *  curvetoCubicSmoothAbs - S
-         *
-         *  @param {number} x2
-         *  @param {number} y2
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoCubicSmoothAbs(x2, y2, x, y) {
-            let controlX, controlY;
-
-            if (this.lastCommand.match(/^[SsCc]$/)) {
-                const secondToLast = this.shapes[this.shapes.length - 1].args[2];
-
-                controlX = 2 * this.lastX - secondToLast.x;
-                controlY = 2 * this.lastY - secondToLast.y;
-            }
-            else {
-                controlX = this.lastX;
-                controlY = this.lastY;
-            }
-
-            this.addShape(this.shapeCreator.cubicBezier(
-                this.lastX, this.lastY,
-                controlX, controlY,
-                x2, y2,
-                x, y
-            ));
-
-            this.lastX = x;
-            this.lastY = y;
-            this.lastCommand = "S";
-        }
-
-        /**
-         *  curvetoCubicSmoothRel - s
-         *
-         *  @param {number} x2
-         *  @param {number} y2
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoCubicSmoothRel(x2, y2, x, y) {
-            let controlX, controlY;
-
-            if (this.lastCommand.match(/^[SsCc]$/)) {
-                const secondToLast = this.shapes[this.shapes.length - 1].args[2];
-
-                controlX = 2 * this.lastX - secondToLast.x;
-                controlY = 2 * this.lastY - secondToLast.y;
-            }
-            else {
-                controlX = this.lastX;
-                controlY = this.lastY;
-            }
-
-            this.addShape(this.shapeCreator.cubicBezier(
-                this.lastX, this.lastY,
-                controlX, controlY,
-                this.lastX + x2, this.lastY + y2,
-                this.lastX + x, this.lastY + y
-            ));
-
-            this.lastX += x;
-            this.lastY += y;
-            this.lastCommand = "s";
-        }
-
-        /**
-         *  curvetoQuadraticSmoothAbs - T
-         *
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoQuadraticSmoothAbs(x, y) {
-            let controlX, controlY;
-
-            if (this.lastCommand.match(/^[QqTt]$/)) {
-                const secondToLast = this.shapes[this.shapes.length - 1].args[1];
-
-                controlX = 2 * this.lastX - secondToLast.x;
-                controlY = 2 * this.lastY - secondToLast.y;
-            }
-            else {
-                controlX = this.lastX;
-                controlY = this.lastY;
-            }
-
-            this.addShape(this.shapeCreator.quadraticBezier(
-                this.lastX, this.lastY,
-                controlX, controlY,
-                x, y
-            ));
-
-            this.lastX = x;
-            this.lastY = y;
-            this.lastCommand = "T";
-        }
-
-        /**
-         *  curvetoQuadraticSmoothRel - t
-         *
-         *  @param {number} x
-         *  @param {number} y
-         */
-        curvetoQuadraticSmoothRel(x, y) {
-            let controlX, controlY;
-
-            if (this.lastCommand.match(/^[QqTt]$/)) {
-                const secondToLast = this.shapes[this.shapes.length - 1].args[1];
-
-                controlX = 2 * this.lastX - secondToLast.x;
-                controlY = 2 * this.lastY - secondToLast.y;
-            }
-            else {
-                controlX = this.lastX;
-                controlY = this.lastY;
-            }
-
-            this.addShape(this.shapeCreator.quadraticBezier(
-                this.lastX, this.lastY,
-                controlX, controlY,
-                this.lastX + x, this.lastY + y
-            ));
-
-            this.lastX += x;
-            this.lastY += y;
-            this.lastCommand = "t";
-        }
-
-        /**
-         *  linetoVerticalAbs - V
-         *
-         *  @param {number} y
-         */
-        linetoVerticalAbs(y) {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                this.lastX, y
-            ));
-
-            this.lastY = y;
-
-            this.lastCommand = "V";
-        }
-
-        /**
-         *  linetoVerticalRel - v
-         *
-         *  @param {number} y
-         */
-        linetoVerticalRel(y) {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                this.lastX, this.lastY + y
-            ));
-
-            this.lastY += y;
-
-            this.lastCommand = "v";
-        }
-
-        /**
-         *  closePath - z or Z
-         */
-        closePath() {
-            this.addShape(this.shapeCreator.line(
-                this.lastX, this.lastY,
-                this.firstX, this.firstY
-            ));
-
-            this.lastX = this.firstX;
-            this.lastY = this.firstY;
-            this.lastCommand = "z";
-        }
-    }
-
-    /**
-     *  ShapeInfo.js
-     *  @copyright 2002, 2017 Kevin Lindsey
-     */
-
-    const degree90 = Math.PI * 0.5;
-    const parser = new PathParser();
-
-
-    /**
-     * getValues
-     *
-     * @param {Array} types
-     * @param {Array} args
-     * @returns {Array}
-     */
-    function getValues(types, args) {
-        const result = [];
-
-        for (const [names, type] of types) {
-            let value = null;
-
-            if (type === "Point2D") {
-                value = parsePoint(names, args);
-            }
-            else if (type === "Number") {
-                value = parseNumber(names, args);
-            }
-            else if (type === "Array<Point2D>" || type === "Point2D[]") {
-                const values = [];
-
-                while (args.length > 0) {
-                    values.push(parsePoint(names, args));
-                }
-
-                if (values.length > 0) {
-                    value = values;
-                }
-            }
-            else if (type === "Optional<Number>" || type === "Number?") {
-                value = parseNumber(names, args);
-
-                if (value === null) {
-                    value = undefined;
-                }
-            }
-            else {
-                throw new TypeError(`Unrecognized value type: ${type}`);
-            }
-
-            if (value !== null) {
-                result.push(value);
-            }
-            else {
-                throw new TypeError(`Unable to extract value for ${names}`);
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * parseNumber
-     *
-     * @param {Array} names
-     * @param {Array} args
-     * @returns {number}
-     */
-    function parseNumber(names, args) {
-        let result = null;
-
-        if (args.length > 0) {
-            const item = args[0];
-            const itemType = typeof item;
-
-            if (itemType === "number") {
-                return args.shift();
-            }
-            else if (itemType === "object") {
-                for (const prop of names) {
-                    if (prop in item && typeof item[prop] === "number") {
-                        result = item[prop];
-                        break;
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * parsePoint
-     *
-     * @param {Array} names
-     * @param {Array} args
-     * @returns {Array}
-     */
-    function parsePoint(names, args) {
-        let result = null;
-
-        if (args.length > 0) {
-            const item = args[0];
-            const itemType = typeof item;
-
-            if (itemType === "number") {
-                if (args.length > 1) {
-                    const x = args.shift();
-                    const y = args.shift();
-
-                    result = new Point2D(x, y);
-                }
-            }
-            else if (Array.isArray(item) && item.length > 1) {
-                if (item.length === 2) {
-                    const [x, y] = args.shift();
-
-                    result = new Point2D(x, y);
-                }
-                else {
-                    throw new TypeError(`Unhandled array of length ${item.length}`);
-                }
-            }
-            else if (itemType === "object") {
-                if ("x" in item && "y" in item) {
-                    result = new Point2D(item.x, item.y);
-                    args.shift();
-                }
-                else {
-                    for (const props of names) {
-                        if (Array.isArray(props)) {
-                            if (props.every(p => p in item)) {
-                                result = new Point2D(item[props[0]], item[props[1]]);
-                                break;
-                            }
-                        }
-                        else if (props in item) {
-                            result = parsePoint([], [item[props]]);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     *  ShapeInfo
-     *  @memberof module:kld-intersections
-     */
-    class ShapeInfo {
-        /**
-         *  @param {string} name
-         *  @param {Array} args
-         *  @returns {module:kld-intersections.ShapeInfo}
-         */
-        constructor(name, args) {
-            this.name = name;
-            this.args = args;
-        }
-
-        static arc(...args) {
-            const types = [
-                [["center", ["centerX", "centerY"], ["cx", "cy"]], "Point2D"],
-                [["radiusX", "rx"], "Number"],
-                [["radiusY", "ry"], "Number"],
-                [["startRadians"], "Number"],
-                [["endRadians"], "Number"]
-            ];
-            const values = getValues(types, args);
-
-            return new ShapeInfo(ShapeInfo.ARC, values);
-        }
-
-        static quadraticBezier(...args) {
-            const types = [
-                [["p1", ["p1x", "p1y"]], "Point2D"],
-                [["p2", ["p2x", "p2y"]], "Point2D"],
-                [["p3", ["p3x", "p3y"]], "Point2D"]
-            ];
-            const values = getValues(types, args);
-
-            return new ShapeInfo(ShapeInfo.QUADRATIC_BEZIER, values);
-        }
-
-        static cubicBezier(...args) {
-            const types = [
-                [["p1", ["p1x", "p1y"]], "Point2D"],
-                [["p2", ["p2x", "p2y"]], "Point2D"],
-                [["p3", ["p3x", "p3y"]], "Point2D"],
-                [["p4", ["p4x", "p4y"]], "Point2D"]
-            ];
-            const values = getValues(types, args);
-
-            return new ShapeInfo(ShapeInfo.CUBIC_BEZIER, values);
-        }
-
-        static circle(...args) {
-            const types = [
-                [["center", ["centerX", "centerY"], ["cx", "cy"]], "Point2D"],
-                [["radius", "r"], "Number"]
-            ];
-            const values = getValues(types, args);
-
-            return new ShapeInfo(ShapeInfo.CIRCLE, values);
-        }
-
-        static ellipse(...args) {
-            const types = [
-                [["center", ["centerX", "centerY"], ["cx", "cy"]], "Point2D"],
-                [["radiusX", "rx"], "Number"],
-                [["radiusY", "ry"], "Number"]
-            ];
-            const values = getValues(types, args);
-
-            return new ShapeInfo(ShapeInfo.ELLIPSE, values);
-        }
-
-        static line(...args) {
-            const types = [
-                [["p1", ["p1x", "p1y"], ["x1", "y1"]], "Point2D"],
-                [["p2", ["p2x", "p2y"], ["x2", "y2"]], "Point2D"]
-            ];
-            const values = getValues(types, args);
-
-            return new ShapeInfo(ShapeInfo.LINE, values);
-        }
-
-        static path(...args) {
-            parser.parseData(args[0]);
-
-            return new ShapeInfo(ShapeInfo.PATH, handler.shapes);
-        }
-
-        static polygon(...args) {
-            const types = [
-                [[], "Array<Point2D>"]
-            ];
-            const values = getValues(
-                types,
-                args.length === 1 && Array.isArray(args[0]) ? args[0] : args
-            );
-
-            return new ShapeInfo(ShapeInfo.POLYGON, values);
-        }
-
-        static polyline(...args) {
-            const types = [
-                [[], "Array<Point2D>"]
-            ];
-            const values = getValues(
-                types,
-                args.length === 1 && Array.isArray(args[0]) ? args[0] : args
-            );
-
-            return new ShapeInfo(ShapeInfo.POLYLINE, values);
-        }
-
-        static rectangle(...args) {
-            const types = [
-                [["topLeft", ["x", "y"], ["left", "top"]], "Point2D"],
-                [["size", ["width", "height"], ["w", "h"]], "Point2D"],
-                [["radiusX", "rx"], "Optional<Number>"],
-                [["radiusY", "ry"], "Optional<Number>"]
-            ];
-            const values = getValues(types, args);
-
-            // fix up bottom-right point
-            const p1 = values[0];
-            const p2 = values[1];
-            values[1] = new Point2D(p1.x + p2.x, p1.y + p2.y);
-
-            // create shape info
-            const result = new ShapeInfo(ShapeInfo.RECTANGLE, values);
-
-            // handle possible rounded rectangle values
-            let ry = result.args.pop();
-            let rx = result.args.pop();
-
-            rx = rx === undefined ? 0 : rx;
-            ry = ry === undefined ? 0 : ry;
-
-            if (rx === 0 && ry === 0) {
-                return result;
-            }
-
-            const {x: p1x, y: p1y} = result.args[0];
-            const {x: p2x, y: p2y} = result.args[1];
-            const width = p2x - p1x;
-            const height = p2y - p1y;
-
-            if (rx === 0) {
-                rx = ry;
-            }
-            if (ry === 0) {
-                ry = rx;
-            }
-            if (rx > width * 0.5) {
-                rx = width * 0.5;
-            }
-            if (ry > height * 0.5) {
-                ry = height * 0.5;
-            }
-
-            const x0 = p1x;
-            const y0 = p1y;
-            const x1 = p1x + rx;
-            const y1 = p1y + ry;
-            const x2 = p2x - rx;
-            const y2 = p2y - ry;
-            const x3 = p2x;
-            const y3 = p2y;
-
-            const segments = [
-                ShapeInfo.arc(x1, y1, rx, ry, 2 * degree90, 3 * degree90),
-                ShapeInfo.line(x1, y0, x2, y0),
-                ShapeInfo.arc(x2, y1, rx, ry, 3 * degree90, 4 * degree90),
-                ShapeInfo.line(x3, y1, x3, y2),
-                ShapeInfo.arc(x2, y2, rx, ry, 0, degree90),
-                ShapeInfo.line(x2, y3, x1, y3),
-                ShapeInfo.arc(x1, y2, rx, ry, degree90, 2 * degree90),
-                ShapeInfo.line(x0, y2, x0, y1)
-            ];
-
-            return new ShapeInfo(ShapeInfo.PATH, segments);
-        }
-    }
-
-    // define shape name constants
-    ShapeInfo.ARC = "Arc";
-    ShapeInfo.QUADRATIC_BEZIER = "Bezier2";
-    ShapeInfo.CUBIC_BEZIER = "Bezier3";
-    ShapeInfo.CIRCLE = "Circle";
-    ShapeInfo.ELLIPSE = "Ellipse";
-    ShapeInfo.LINE = "Line";
-    ShapeInfo.PATH = "Path";
-    ShapeInfo.POLYGON = "Polygon";
-    ShapeInfo.POLYLINE = "Polyline";
-    ShapeInfo.RECTANGLE = "Rectangle";
-
-    // setup path parser handler after ShapeInfo has been defined
-    const handler = new PathHandler(ShapeInfo);
-
-    parser.setHandler(handler);
-
-    /* Demo.svelte generated by Svelte v3.22.2 */
+    /* Demo.svelte generated by Svelte v3.24.1 */
 
     const file$8 = "Demo.svelte";
 
-    // (16:4) <Globe tilt={-10} rotate="30" focusOn={'toronto'}>
+    // (17:4) <Globe>
     function create_default_slot_1(ctx) {
+    	let graticule;
     	let t0;
+    	let countries;
     	let t1;
+    	let dot;
     	let current;
-    	const graticule = new Graticule({ $$inline: true });
+    	graticule = new Graticule({ $$inline: true });
 
-    	const countries = new Countries({
+    	countries = new Countries({
     			props: { color: "lightgrey" },
     			$$inline: true
     		});
 
-    	const dot = new Dot({
+    	dot = new Dot({
     			props: { at: /*toronto*/ ctx[0], radius: "2" },
     			$$inline: true
     		});
@@ -61768,26 +59559,22 @@ var app = (function () {
     		block,
     		id: create_default_slot_1.name,
     		type: "slot",
-    		source: "(16:4) <Globe tilt={-10} rotate=\\\"30\\\" focusOn={'toronto'}>",
+    		source: "(17:4) <Globe>",
     		ctx
     	});
 
     	return block;
     }
 
-    // (24:4) <Map tilt={-10}>
+    // (27:4) <Map focus={[43.65, -79.43]}>
     function create_default_slot(ctx) {
-    	let t0;
-    	let t1;
+    	let graticule;
+    	let t;
+    	let dot;
     	let current;
-    	const graticule = new Graticule({ $$inline: true });
+    	graticule = new Graticule({ $$inline: true });
 
-    	const countries = new Countries({
-    			props: { color: "lightgrey" },
-    			$$inline: true
-    		});
-
-    	const dot = new Dot({
+    	dot = new Dot({
     			props: { at: /*toronto*/ ctx[0], radius: "2" },
     			$$inline: true
     		});
@@ -61795,16 +59582,12 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			create_component(graticule.$$.fragment);
-    			t0 = space();
-    			create_component(countries.$$.fragment);
-    			t1 = space();
+    			t = space();
     			create_component(dot.$$.fragment);
     		},
     		m: function mount(target, anchor) {
     			mount_component(graticule, target, anchor);
-    			insert_dev(target, t0, anchor);
-    			mount_component(countries, target, anchor);
-    			insert_dev(target, t1, anchor);
+    			insert_dev(target, t, anchor);
     			mount_component(dot, target, anchor);
     			current = true;
     		},
@@ -61812,21 +59595,17 @@ var app = (function () {
     		i: function intro(local) {
     			if (current) return;
     			transition_in(graticule.$$.fragment, local);
-    			transition_in(countries.$$.fragment, local);
     			transition_in(dot.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
     			transition_out(graticule.$$.fragment, local);
-    			transition_out(countries.$$.fragment, local);
     			transition_out(dot.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			destroy_component(graticule, detaching);
-    			if (detaching) detach_dev(t0);
-    			destroy_component(countries, detaching);
-    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(t);
     			destroy_component(dot, detaching);
     		}
     	};
@@ -61835,7 +59614,7 @@ var app = (function () {
     		block,
     		id: create_default_slot.name,
     		type: "slot",
-    		source: "(24:4) <Map tilt={-10}>",
+    		source: "(27:4) <Map focus={[43.65, -79.43]}>",
     		ctx
     	});
 
@@ -61849,26 +59628,25 @@ var app = (function () {
     	let a;
     	let t3;
     	let div0;
+    	let globe;
     	let t4;
     	let hr;
     	let t5;
     	let div1;
+    	let map;
     	let current;
 
-    	const globe = new Globe({
+    	globe = new Globe({
     			props: {
-    				tilt: -10,
-    				rotate: "30",
-    				focusOn: "toronto",
     				$$slots: { default: [create_default_slot_1] },
     				$$scope: { ctx }
     			},
     			$$inline: true
     		});
 
-    	const map = new Map$1({
+    	map = new Map$1({
     			props: {
-    				tilt: -10,
+    				focus: [43.65, -79.43],
     				$$slots: { default: [create_default_slot] },
     				$$scope: { ctx }
     			},
@@ -61895,11 +59673,11 @@ var app = (function () {
     			attr_dev(a, "href", "https://github.com/spencermountain/somehow-maps");
     			add_location(a, file$8, 13, 2, 239);
     			attr_dev(div0, "class", "w16 svelte-2d8m47");
-    			add_location(div0, file$8, 14, 2, 316);
+    			add_location(div0, file$8, 15, 2, 317);
     			attr_dev(hr, "class", "mt5");
-    			add_location(hr, file$8, 21, 2, 509);
+    			add_location(hr, file$8, 23, 2, 468);
     			attr_dev(div1, "class", "w16 svelte-2d8m47");
-    			add_location(div1, file$8, 22, 2, 530);
+    			add_location(div1, file$8, 25, 2, 490);
     			attr_dev(div2, "class", "main");
     			add_location(div2, file$8, 11, 0, 194);
     		},
