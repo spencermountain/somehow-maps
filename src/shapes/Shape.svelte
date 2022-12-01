@@ -1,11 +1,12 @@
 <script>
   import { getContext } from 'svelte'
-  import * as d3Geo from 'd3-geo'
-  import * as topojson from 'topojson-client'
-  import c from 'spencer-color'
+  // import c from 'spencer-color'
   export let shape = ''
   export let stroke = 'lightgrey'
   export let fill = 'white'
+  let c = {
+    colors: {}
+  }
   fill = c.colors[fill] || fill
   stroke = c.colors[stroke] || stroke
 

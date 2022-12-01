@@ -2,7 +2,9 @@
   import findPoint from '../lib/findPoint'
   import * as d3Geo from 'd3-geo'
   import { getContext } from 'svelte'
-  import c from 'spencer-color'
+  let c = {
+    colors: {}
+  }
   export let at = 0
   export let color = 'blue'
   export let label = ''

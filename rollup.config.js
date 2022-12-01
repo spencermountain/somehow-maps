@@ -30,10 +30,7 @@ export default {
   plugins: [
     json({}),
     svelte({
-      dev: true,
-      css: (css) => {
-        css.write('build/bundle.css', false)
-      }
+
     }),
     resolve({
       browser: true,

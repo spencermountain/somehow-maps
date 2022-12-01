@@ -11,12 +11,6 @@
   let lines = grat.lines()
 </script>
 
-<style>
-  .line {
-    opacity: 0.4;
-  }
-</style>
-
 <g class="graticule">
   {#each lines as line}
     <path d={toPath(line)} fill="none" stroke={color} class="line" />
